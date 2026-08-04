@@ -92,7 +92,7 @@ export default function InsurancePortal() {
               </div>
               <div className="mb-3">
                 <label className="form-label small fw-semibold">Coverage Details</label>
-                <textarea className="form-control rounded-3" rows="3" placeholder="e.g. Covers 80% OPD, 100% Labs and Pharmacy up to $5000" value={verifyForm.coverageDetails} onChange={e => setVerifyForm({...verifyForm, coverageDetails: e.target.value})}></textarea>
+                <textarea className="form-control rounded-3" rows="3" placeholder="e.g. Covers 80% OPD, 100% Labs and Pharmacy up to ₹5000" value={verifyForm.coverageDetails} onChange={e => setVerifyForm({...verifyForm, coverageDetails: e.target.value})}></textarea>
               </div>
               <button type="submit" className="btn btn-premium-primary w-100 rounded-3">Register verified policy</button>
             </form>
@@ -124,7 +124,7 @@ export default function InsurancePortal() {
                           <h6 className="mb-0 fw-semibold">{claim.patient?.name}</h6>
                           <span className="small text-muted">ID: {claim.patient?.id}</span>
                         </td>
-                        <td className="fw-bold text-primary">${claim.totalAmount?.toFixed(2)}</td>
+                        <td className="fw-bold text-primary">₹{claim.totalAmount?.toFixed(2)}</td>
                         <td>{claim.billingDate}</td>
                         <td>
                           <div className="d-flex gap-2">

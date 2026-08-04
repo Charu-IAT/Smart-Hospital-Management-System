@@ -114,6 +114,19 @@ export default function DoctorDashboard() {
             </div>
           )}
 
+          {appointments.filter(app => app.paymentStatus === 'PAID').length > 0 && (
+            <div className="alert alert-info border-0 rounded-4 p-3 mb-4 shadow-sm">
+              <h6 className="fw-bold text-info mb-2"><i className="bi bi-bell-fill me-2 animate-bounce"></i>New Patient Payment Notifications</h6>
+              <ul className="mb-0 ps-3 small text-muted animate-fade-in">
+                {appointments.filter(app => app.paymentStatus === 'PAID').map(app => (
+                  <li key={app.id}>
+                    Consultation fee has been successfully paid by <strong>{app.patient?.name}</strong> for the appointment scheduled on <strong>{app.appointmentDate}</strong> at <strong>{app.timeSlot}</strong>.
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {message && (
             <div className="alert alert-success alert-dismissible fade show rounded-3" role="alert">
               {message}
@@ -138,6 +151,11 @@ export default function DoctorDashboard() {
                       <p className="text-muted small mb-0">
                         Type: <span className="fw-semibold">{app.consultationType}</span> • Allergies: <span className="text-danger fw-semibold">{app.patient?.allergies || 'None'}</span>
                       </p>
+                      {app.paymentStatus === 'PAID' ? (
+                        <span className="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-3 px-2 py-1 mt-1 d-inline-block"><i className="bi bi-check-circle-fill me-1"></i>Consultation Fee Paid</span>
+                      ) : (
+                        <span className="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle rounded-3 px-2 py-1 mt-1 d-inline-block"><i className="bi bi-x-circle-fill me-1"></i>Fee Unpaid</span>
+                      )}
                     </div>
                     <div className="d-flex gap-2">
                       {app.status === 'PENDING' && (

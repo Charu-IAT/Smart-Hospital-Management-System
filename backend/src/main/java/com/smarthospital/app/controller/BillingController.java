@@ -46,6 +46,12 @@ public class BillingController {
         return ResponseEntity.ok(billingRepository.findByPatientId(patient.getId()));
     }
 
+    @GetMapping("/payments")
+    public ResponseEntity<List<Payment>> getPatientPayments() {
+        Patient patient = getAuthenticatedPatient();
+        return ResponseEntity.ok(paymentRepository.findByBillingPatientId(patient.getId()));
+    }
+
     @PostMapping("/{id}/pay")
     public ResponseEntity<Payment> payBill(@PathVariable Long id, @RequestParam String paymentMethod) {
         Billing billing = billingRepository.findById(id)

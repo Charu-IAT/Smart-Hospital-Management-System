@@ -1,5 +1,7 @@
 package com.smarthospital.app.controller;
 
+import com.smarthospital.app.model.Doctor;
+import com.smarthospital.app.repository.DoctorRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -8,6 +10,12 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/ai")
 public class AiController {
+
+    private final DoctorRepository doctorRepository;
+
+    public AiController(DoctorRepository doctorRepository) {
+        this.doctorRepository = doctorRepository;
+    }
 
     // Helper structures for Disease Prediction
     private static final Map<String, List<String>> DISEASE_SYMPTOMS = new LinkedHashMap<>();
@@ -147,7 +155,20 @@ public class AiController {
         if (msgLower.contains("appointment") || msgLower.contains("book")) {
             response = "You can book appointments easily! Simply navigate to the **Appointment Booking** page, choose your preferred doctor, select a date and time slot, and submit. You can also pay your consultation fee online.";
         } else if (msgLower.contains("doctor") || msgLower.contains("availability") || msgLower.contains("schedule")) {
-            response = "Our clinic has specialists available Monday through Friday. Dr. Sarah Jenkins (Cardiology Specialist) is available Mon-Fri, 9AM to 4PM. You can check doctor availability directly from the Booking screen.";
+            List<Doctor> doctors = doctorRepository.findAll();
+            if (doctors.isEmpty()) {
+                response = "Currently, there are no doctors registered in our clinic database. Please contact the administrator.";
+            } else {
+                StringBuilder sb = new StringBuilder("Our clinic has the following specialists available:\n\n");
+                for (Doctor doc : doctors) {
+                    String deptName = doc.getDepartment() != null ? doc.getDepartment().getName() : doc.getSpecialization();
+                    sb.append("• ").append(doc.getName())
+                      .append(" (").append(deptName).append(") - Available: ")
+                      .append(doc.getSchedule()).append("\n");
+                }
+                sb.append("\nYou can book a consultation directly from the Booking screen.");
+                response = sb.toString();
+            }
         } else if (msgLower.contains("timing") || msgLower.contains("hours") || msgLower.contains("open")) {
             response = "The Smart Hospital is open 24/7 for emergency services. General OPD and Consultation services run daily from 8:00 AM to 8:00 PM.";
         } else if (msgLower.contains("billing") || msgLower.contains("pay") || msgLower.contains("insurance")) {

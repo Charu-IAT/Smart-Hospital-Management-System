@@ -14,6 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
+import java.util.Random;
+import java.util.Map;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -117,15 +120,94 @@ public class AuthController {
             Doctor doctor = new Doctor();
             doctor.setUser(savedUser);
             doctor.setName(registerRequest.getName() != null ? registerRequest.getName() : registerRequest.getUsername());
-            doctor.setSpecialization(registerRequest.getSpecialization() != null ? registerRequest.getSpecialization() : "General Practitioner");
             doctor.setSchedule(registerRequest.getSchedule() != null ? registerRequest.getSchedule() : "Mon-Fri: 9AM-5PM");
             
             if (registerRequest.getDepartmentId() != null) {
-                departmentRepository.findById(registerRequest.getDepartmentId()).ifPresent(doctor::setDepartment);
+                Department dept = departmentRepository.findById(registerRequest.getDepartmentId()).orElse(null);
+                if (dept != null) {
+                    doctor.setDepartment(dept);
+                    doctor.setSpecialization(dept.getName());
+                } else {
+                    doctor.setSpecialization("General Practitioner");
+                }
+            } else {
+                doctor.setSpecialization("General Practitioner");
             }
             doctorRepository.save(doctor);
         }
 
         return ResponseEntity.ok("User registered successfully!");
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        if (username == null || username.isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: Username is required!");
+        }
+
+        User user = userRepository.findByUsername(username)
+                .orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest().body("Error: Username not found!");
+        }
+
+        // Retrieve registered phone number
+        String phone = "+1-555-0199";
+        if (user.getRole() == Role.ROLE_PATIENT) {
+            Optional<Patient> patient = patientRepository.findByUserId(user.getId());
+            if (patient.isPresent() && patient.get().getPhone() != null) {
+                phone = patient.get().getPhone();
+            }
+        }
+
+        // Generate 6-digit OTP
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+        user.setOtp(otp);
+        user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
+        userRepository.save(user);
+
+        // System output to simulate SMS gateway log delivery
+        System.out.println("\n=======================================================");
+        System.out.println("[SMS GATEWAY SIMULATOR] OTP code: " + otp + " sent to registered mobile number: " + phone);
+        System.out.println("=======================================================\n");
+
+        return ResponseEntity.ok(Map.of(
+            "message", "OTP sent successfully to registered mobile number!",
+            "phoneMask", maskPhone(phone)
+        ));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String otp = request.get("otp");
+        String newPassword = request.get("newPassword");
+
+        if (username == null || otp == null || newPassword == null) {
+            return ResponseEntity.badRequest().body("Error: Missing required fields!");
+        }
+
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest().body("Error: Username not found!");
+        }
+
+        if (user.getOtp() == null || !user.getOtp().equals(otp) || user.getOtpExpiry() == null || user.getOtpExpiry().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body("Error: Invalid or expired OTP!");
+        }
+
+        // Reset password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setOtp(null);
+        user.setOtpExpiry(null);
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Password reset successfully!");
+    }
+
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() < 4) return "****";
+        return "****" + phone.substring(phone.length() - 4);
     }
 }

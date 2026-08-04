@@ -42,7 +42,7 @@ export default function LabPortal() {
 
     try {
       await api.post(`/api/lab/upload?patientId=${uploadForm.patientId}&testName=${uploadForm.testName}&resultSummary=${uploadForm.resultSummary}&fileUrl=${uploadForm.fileUrl}`);
-      setMessage('Lab report uploaded successfully! Laboratory test fee ($30) issued to patient.');
+      setMessage('Lab report uploaded successfully! Laboratory test fee (₹30) issued to patient.');
       setUploadForm({ patientId: '', testName: '', resultSummary: '', fileUrl: '' });
       fetchReports();
     } catch (err) {

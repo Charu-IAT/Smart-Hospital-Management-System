@@ -104,7 +104,7 @@ export default function PharmacyPortal() {
                       <td className={isExpiring ? 'text-danger fw-semibold' : ''}>
                         {med.expiryDate} {isExpiring && <span className="badge bg-danger ms-1 small">Expiring Soon</span>}
                       </td>
-                      <td>${med.price?.toFixed(2)}</td>
+                      <td>₹{med.price?.toFixed(2)}</td>
                       <td>
                         <span className={`badge ${med.stockQuantity > 0 ? 'bg-success' : 'bg-danger'}`}>
                           {med.stockQuantity > 0 ? 'In Stock' : 'Out of Stock'}
@@ -134,7 +134,7 @@ export default function PharmacyPortal() {
                   <option value="">-- Select Drug --</option>
                   {medicines.map(med => (
                     <option key={med.id} value={med.id} disabled={med.stockQuantity === 0}>
-                      {med.name} (Stock: {med.stockQuantity}) - ${med.price?.toFixed(2)}
+                      {med.name} (Stock: {med.stockQuantity}) - ₹{med.price?.toFixed(2)}
                     </option>
                   ))}
                 </select>
@@ -182,7 +182,7 @@ export default function PharmacyPortal() {
                   <input type="number" className="form-control rounded-3" value={newMed.stockQuantity} onChange={e => setNewMed({...newMed, stockQuantity: parseInt(e.target.value)})} required />
                 </div>
                 <div className="col-6 mb-3">
-                  <label className="form-label small fw-semibold">Price ($)</label>
+                  <label className="form-label small fw-semibold">Price (₹)</label>
                   <input type="number" step="0.01" className="form-control rounded-3" value={newMed.price} onChange={e => setNewMed({...newMed, price: parseFloat(e.target.value)})} required />
                 </div>
               </div>

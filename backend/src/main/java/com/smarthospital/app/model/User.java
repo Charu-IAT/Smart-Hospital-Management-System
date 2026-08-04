@@ -31,4 +31,9 @@ public class User {
 
     @Column(name = "date_created")
     private LocalDateTime dateCreated = LocalDateTime.now();
+
+    private String otp;
+
+    @Column(name = "otp_expiry")
+    private LocalDateTime otpExpiry;
 }
