@@ -1,0 +1,207 @@
+/* Custom Design System for Smart Hospital Management System (SHMS) */
+
+:root {
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --secondary-color: #0d9488;
+  --secondary-hover: #0f766e;
+  --dark-bg: #0f172a;
+  --light-bg: #f8fafc;
+  --card-dark: #1e293b;
+  --card-light: #ffffff;
+  --text-dark: #f8fafc;
+  --text-light: #0f172a;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: radial-gradient(circle at 10% 20%, rgba(243, 246, 255, 1) 0%, rgba(228, 235, 255, 0.8) 90%);
+  color: var(--text-light);
+  min-height: 100vh;
+  margin: 0;
+  padding-bottom: 30px;
+}
+
+/* Glassmorphism Card Style */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: var(--glass-shadow);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+/* Page Transitions and Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Premium Gradient Headers */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+}
+
+/* Navigation System Styles */
+.custom-navbar {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.nav-link-custom {
+  color: #475569;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.nav-link-custom:hover, .nav-link-custom.active {
+  color: var(--primary-color) !important;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+/* Custom UI Elements */
+.btn-premium-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+  transition: all 0.3s;
+}
+
+.btn-premium-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+
+.btn-premium-secondary {
+  background: linear-gradient(135deg, var(--secondary-color) 0%, #14b8a6 100%);
+  color: white;
+  border: none;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
+  transition: all 0.3s;
+}
+
+.btn-premium-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+}
+
+/* Chatbot Widget Styles */
+.chatbot-panel {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  width: 360px;
+  height: 500px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.chatbot-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.2s;
+}
+
+.chatbot-toggle:hover {
+  transform: scale(1.1);
+}
+
+/* Custom Video Consult UI */
+.video-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  min-height: 380px;
+}
+
+@media (max-width: 768px) {
+  .video-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.video-container {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #1e293b;
+  aspect-ratio: 16/9;
+}
+
+.video-label {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.2);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(37, 99, 235, 0.4);
+}
