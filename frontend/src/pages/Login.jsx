@@ -198,7 +198,7 @@ export default function Login() {
               }`}
               onClick={() => setLoginRole('CLINICIAN')}
             >
-              <i className="bi bi-shield-lock-fill me-1"></i>Doctor
+              <i className="bi bi-shield-lock-fill me-1"></i>Hospital Staff Portal
             </button>
           </div>
         )}
