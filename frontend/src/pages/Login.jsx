@@ -6,6 +6,7 @@ export default function Login() {
   const [isRegister, setIsRegister] = useState(false);
   const [isForgot, setIsForgot] = useState(false);
   const [forgotStep, setForgotStep] = useState(1); // 1 = Request OTP, 2 = Verify OTP & Reset
+  const [loginRole, setLoginRole] = useState('PATIENT'); // PATIENT or CLINICIAN
   
   const [formData, setFormData] = useState({
     username: '',
@@ -93,16 +94,16 @@ export default function Login() {
         // Login flow
         const res = await api.post('/api/auth/login', {
           username: formData.username,
-          password: formData.password,
+          password: loginRole === 'PATIENT' ? '' : formData.password,
         });
         const { token, role, username, userId, profileId, name } = res.data;
         
-        localStorage.setItem('token', token);
-        localStorage.setItem('role', role);
-        localStorage.setItem('username', username);
-        localStorage.setItem('userId', userId);
-        localStorage.setItem('profileId', profileId || '');
-        localStorage.setItem('name', name);
+        sessionStorage.setItem('token', token);
+        sessionStorage.setItem('role', role);
+        sessionStorage.setItem('username', username);
+        sessionStorage.setItem('userId', userId);
+        sessionStorage.setItem('profileId', profileId || '');
+        sessionStorage.setItem('name', name);
 
         // Redirect based on role
         if (role === 'ROLE_ADMIN') navigate('/admin');
@@ -130,7 +131,7 @@ export default function Login() {
       if (forgotStep === 1) {
         const res = await api.post('/api/auth/forgot-password', { username: forgotData.username });
         setMessage({
-          text: `OTP sent! Mobile number ending in: ${res.data.phoneMask || '****'}. (Check backend server logs/console for OTP code).`,
+          text: `OTP sent! Mobile number ending in: ${res.data.phoneMask || '****'}. Simulated OTP Code is: ${res.data.otp || 'XXXXXX'}`,
           type: 'success'
         });
         setForgotStep(2);
@@ -172,6 +173,36 @@ export default function Login() {
           </div>
         )}
 
+        {!isForgot && !isRegister && (
+          <div className="d-flex bg-light p-1 rounded-3 mb-4 border border-light-subtle">
+            <button
+              type="button"
+              className={`btn w-50 py-2 rounded-2 fw-semibold transition-all small border-0 ${
+                loginRole === 'PATIENT'
+                  ? 'btn-premium-primary shadow-sm text-white'
+                  : 'btn-light text-muted'
+              }`}
+              onClick={() => {
+                setLoginRole('PATIENT');
+                setFormData(prev => ({ ...prev, password: '' }));
+              }}
+            >
+              <i className="bi bi-person-fill me-1"></i>Patient Portal
+            </button>
+            <button
+              type="button"
+              className={`btn w-50 py-2 rounded-2 fw-semibold transition-all small border-0 ${
+                loginRole === 'CLINICIAN'
+                  ? 'btn-premium-primary shadow-sm text-white'
+                  : 'btn-light text-muted'
+              }`}
+              onClick={() => setLoginRole('CLINICIAN')}
+            >
+              <i className="bi bi-shield-lock-fill me-1"></i>Doctor
+            </button>
+          </div>
+        )}
+
         {isForgot ? (
           /* Forgot Password View */
           <form onSubmit={handleForgotPasswordSubmit}>
@@ -196,7 +227,7 @@ export default function Login() {
               </>
             ) : (
               <>
-                <p className="text-muted small">Enter the 6-digit OTP code printed in the backend console log, and your new password.</p>
+                 <p className="text-muted small">Enter the 6-digit OTP code displayed in the success alert above (or check the backend server logs), and your new password.</p>
                 <div className="mb-3">
                   <label className="form-label fw-semibold">OTP Code</label>
                   <input
@@ -259,33 +290,35 @@ export default function Login() {
             </div>
 
             {/* Password */}
-            <div className="mb-3">
-              <label className="form-label fw-semibold">Password</label>
-              <input
-                type="password"
-                name="password"
-                className="form-control rounded-3"
-                placeholder="Enter password"
-                value={formData.password}
-                onChange={handleInputChange}
-                required
-              />
-              {!isRegister && (
-                <div className="text-end mt-1">
-                  <button
-                    type="button"
-                    className="btn btn-link text-primary p-0 small fw-semibold text-decoration-none"
-                    onClick={() => {
-                      setIsForgot(true);
-                      setForgotStep(1);
-                      setMessage({ text: '', type: '' });
-                    }}
-                  >
-                    Forgot Password?
-                  </button>
-                </div>
-              )}
-            </div>
+            {(loginRole === 'PATIENT' && !isRegister) ? null : (
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  className="form-control rounded-3"
+                  placeholder={isRegister ? "Enter password" : "Enter password"}
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required={isRegister || loginRole === 'CLINICIAN'}
+                />
+                {!isRegister && (
+                  <div className="text-end mt-1">
+                    <button
+                      type="button"
+                      className="btn btn-link text-primary p-0 small fw-semibold text-decoration-none"
+                      onClick={() => {
+                        setIsForgot(true);
+                        setForgotStep(1);
+                        setMessage({ text: '', type: '' });
+                      }}
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {isRegister && (
               <>

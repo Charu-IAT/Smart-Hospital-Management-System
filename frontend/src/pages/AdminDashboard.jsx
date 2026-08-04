@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import VisualReport from '../components/VisualReport';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -13,9 +14,28 @@ export default function AdminDashboard() {
 
   const [activeTab, setActiveTab] = useState('stats');
   const [doctors, setDoctors] = useState([]);
+  const [patients, setPatients] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [bills, setBills] = useState([]);
+
+  // Reports state
+  const [selectedPatientForRpt, setSelectedPatientForRpt] = useState(null);
+  const [patientReports, setPatientReports] = useState([]);
+  const [selectedReportForRpt, setSelectedReportForRpt] = useState(null);
+  const [reportSearchQuery, setReportSearchQuery] = useState('');
+
+  const handleSelectPatientForReports = async (patient) => {
+    setSelectedPatientForRpt(patient);
+    setSelectedReportForRpt(null);
+    setPatientReports([]);
+    try {
+      const res = await api.get(`/api/patients/${patient.id}/reports`);
+      setPatientReports(res.data);
+    } catch (err) {
+      console.error("Error loading patient reports:", err);
+    }
+  };
 
   // Form states
   const [newDept, setNewDept] = useState({ name: '', description: '' });
@@ -42,6 +62,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchStats();
     fetchDoctors();
+    fetchPatients();
     fetchDepartments();
     fetchInventory();
     fetchBills();
@@ -52,6 +73,13 @@ export default function AdminDashboard() {
       const res = await api.get('/api/admin/stats');
       setStats(res.data);
     } catch (err) { console.error("Error fetching stats:", err); }
+  };
+
+  const fetchPatients = async () => {
+    try {
+      const res = await api.get('/api/patients/all');
+      setPatients(res.data);
+    } catch (err) { console.error("Error fetching patients:", err); }
   };
 
   const fetchDoctors = async () => {
@@ -182,6 +210,11 @@ export default function AdminDashboard() {
           </button>
         </li>
         <li className="nav-item">
+          <button className={`nav-link rounded-3 fw-semibold ${activeTab === 'patients' ? 'active btn-premium-primary text-white' : 'text-dark'}`} onClick={() => setActiveTab('patients')}>
+            <i className="bi bi-person-fill me-2"></i>Patients ({patients.length})
+          </button>
+        </li>
+        <li className="nav-item">
           <button className={`nav-link rounded-3 fw-semibold ${activeTab === 'depts' ? 'active btn-premium-primary text-white' : 'text-dark'}`} onClick={() => setActiveTab('depts')}>
             <i className="bi bi-building-fill me-2"></i>Departments
           </button>
@@ -199,6 +232,11 @@ export default function AdminDashboard() {
         <li className="nav-item">
           <button className={`nav-link rounded-3 fw-semibold ${activeTab === 'register' ? 'active btn-premium-primary text-white' : 'text-dark'}`} onClick={() => setActiveTab('register')}>
             <i className="bi bi-person-plus-fill me-2"></i>Register Users
+          </button>
+        </li>
+        <li className="nav-item">
+          <button className={`nav-link rounded-3 fw-semibold ${activeTab === 'reports' ? 'active btn-premium-primary text-white' : 'text-dark'}`} onClick={() => setActiveTab('reports')}>
+            <i className="bi bi-file-earmark-bar-graph-fill me-2"></i>Visual Reports
           </button>
         </li>
       </ul>
@@ -276,6 +314,62 @@ export default function AdminDashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Patients Tab */}
+      {activeTab === 'patients' && (
+        <div className="glass-card p-4 table-responsive animate-fade-in">
+          <h4 className="fw-bold mb-3"><i className="bi bi-person-fill text-primary me-2"></i>Registered Patients Directory</h4>
+          {patients.length === 0 ? (
+            <p className="text-muted small">No registered patients found in directory.</p>
+          ) : (
+            <table className="table table-hover align-middle">
+              <thead>
+                <tr style={{ fontSize: '0.85rem' }}>
+                  <th>ID</th>
+                  <th>Patient Name</th>
+                  <th>Age/Gender</th>
+                  <th>Blood Group</th>
+                  <th>Contact Info</th>
+                  <th>Medical Profile</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {patients.map(pat => (
+                  <tr key={pat.id} style={{ fontSize: '0.9rem' }}>
+                    <td className="font-monospace fw-bold">{pat.id}</td>
+                    <td>
+                      <span className="fw-semibold text-dark block">{pat.name}</span>
+                      <span className="text-muted small block">User: {pat.user?.username || 'N/A'}</span>
+                    </td>
+                    <td>{pat.age || 'N/A'} yrs / {pat.gender || 'N/A'}</td>
+                    <td><span className="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">{pat.bloodGroup || 'O+'}</span></td>
+                    <td>
+                      <div className="small text-muted mb-0.5"><i className="bi bi-telephone me-1"></i>{pat.phone || 'N/A'}</div>
+                      <div className="small text-muted"><i className="bi bi-geo-alt me-1"></i>{pat.address || 'N/A'}</div>
+                    </td>
+                    <td>
+                      <div className="small"><strong className="text-dark">Allergies:</strong> {pat.allergies || 'None'}</div>
+                      <div className="small"><strong className="text-dark">History:</strong> {pat.medicalHistory || 'None'}</div>
+                    </td>
+                    <td>
+                      <button 
+                        className="btn btn-sm btn-outline-primary rounded-2 px-2 py-1 small d-inline-flex align-items-center gap-1 fw-semibold"
+                        onClick={() => {
+                          handleSelectPatientForReports(pat);
+                          setActiveTab('reports');
+                        }}
+                      >
+                        <i className="bi bi-file-earmark-bar-graph"></i> View Reports
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
@@ -464,6 +558,9 @@ export default function AdminDashboard() {
                 <select className="form-select rounded-3" value={regForm.role} onChange={e => setRegForm({...regForm, role: e.target.value})}>
                   <option value="ROLE_PATIENT">Patient</option>
                   <option value="ROLE_DOCTOR">Doctor</option>
+                  <option value="ROLE_PHARMACIST">Pharmacist</option>
+                  <option value="ROLE_LAB_STAFF">Laboratory Staff</option>
+                  <option value="ROLE_ADMIN">Clinic Staff / Admin</option>
                 </select>
               </div>
 
@@ -524,6 +621,127 @@ export default function AdminDashboard() {
             </div>
             <button type="submit" className="btn btn-premium-primary w-100 rounded-3 mt-3">Register User Account</button>
           </form>
+        </div>
+      )}
+
+      {/* Reports Tab */}
+      {activeTab === 'reports' && (
+        <div className="glass-card p-4 text-start animate-fade-in">
+          {selectedReportForRpt ? (
+            <VisualReport 
+              report={selectedReportForRpt} 
+              onBack={() => setSelectedReportForRpt(null)} 
+            />
+          ) : (
+            <div>
+              <h4 className="fw-bold mb-4"><i className="bi bi-file-earmark-bar-graph text-primary me-2"></i>Patient Visual Diagnostics Lookup</h4>
+              
+              <div className="row g-4 mb-4">
+                {/* Patient Search and Selector Card */}
+                <div className="col-md-5">
+                  <div className="card p-3 border-light-subtle rounded-3 shadow-sm bg-white">
+                    <label className="form-label small fw-bold text-dark mb-2">Search Patient by Name</label>
+                    <div className="input-group mb-3">
+                      <span className="input-group-text bg-light border-end-0"><i className="bi bi-search text-muted"></i></span>
+                      <input 
+                        type="text" 
+                        className="form-control rounded-end-3 border-start-0" 
+                        placeholder="Type name to search..." 
+                        value={reportSearchQuery}
+                        onChange={e => setReportSearchQuery(e.target.value)}
+                      />
+                    </div>
+
+                    <label className="form-label small fw-bold text-dark mb-2">Select Patient ({patients.filter(p => p.name.toLowerCase().includes(reportSearchQuery.toLowerCase())).length})</label>
+                    <div className="list-group overflow-y-auto" style={{ maxHeight: '300px' }}>
+                      {patients
+                        .filter(p => p.name.toLowerCase().includes(reportSearchQuery.toLowerCase()))
+                        .map(pat => (
+                          <button
+                            key={pat.id}
+                            type="button"
+                            className={`list-group-item list-group-item-action border-light-subtle d-flex justify-content-between align-items-center ${selectedPatientForRpt?.id === pat.id ? 'active' : ''}`}
+                            onClick={() => handleSelectPatientForReports(pat)}
+                          >
+                            <div>
+                              <div className="fw-bold text-dark">{pat.name}</div>
+                              <span className="small text-muted font-monospace block" style={{ fontSize: '0.75rem' }}>ID: {pat.id} • {pat.age} yrs / {pat.gender}</span>
+                            </div>
+                            <span className="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">{pat.bloodGroup || 'O+'}</span>
+                          </button>
+                        ))
+                      }
+                      {patients.filter(p => p.name.toLowerCase().includes(reportSearchQuery.toLowerCase())).length === 0 && (
+                        <div className="p-3 text-center text-muted small">No patients match search query.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Patient's Lab Reports list */}
+                <div className="col-md-7">
+                  {selectedPatientForRpt ? (
+                    <div className="card p-3 border-light-subtle rounded-3 shadow-sm bg-white h-100">
+                      <div className="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <div>
+                          <h6 className="fw-bold text-dark mb-0">Diagnostic Reports for {selectedPatientForRpt.name}</h6>
+                          <span className="small text-muted font-monospace">Patient ID: #{selectedPatientForRpt.id}</span>
+                        </div>
+                        <span className="badge bg-primary px-2.5 py-1">{patientReports.length} Reports Found</span>
+                      </div>
+
+                      {patientReports.length === 0 ? (
+                        <div className="text-center py-5 text-muted">
+                          <i className="bi bi-folder2-open fs-1 text-muted mb-2 block"></i>
+                          <p className="mb-0">No diagnostic reports finalized on file for this patient.</p>
+                        </div>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="table table-hover align-middle">
+                            <thead>
+                              <tr style={{ fontSize: '0.8rem' }} className="text-muted">
+                                <th>Test Name</th>
+                                <th>Test Date</th>
+                                <th>Status</th>
+                                <th className="text-end">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {patientReports.map(rep => (
+                                <tr key={rep.id} style={{ fontSize: '0.85rem' }}>
+                                  <td className="fw-bold text-dark">{rep.testName}</td>
+                                  <td>{rep.testDate}</td>
+                                  <td>
+                                    <span className={`badge ${rep.status === 'COMPLETED' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                      {rep.status}
+                                    </span>
+                                  </td>
+                                  <td className="text-end">
+                                    <button 
+                                      className="btn btn-sm btn-premium-primary rounded-2 px-3 py-1 text-white fw-semibold small" 
+                                      onClick={() => setSelectedReportForRpt(rep)}
+                                    >
+                                      <i className="bi bi-eye-fill me-1"></i> Visual Report
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="card p-5 border-light-subtle rounded-3 shadow-sm bg-white h-100 d-flex flex-column align-items-center justify-content-center text-center text-muted">
+                      <i className="bi bi-person-bounding-box fs-1 mb-3 text-muted opacity-50"></i>
+                      <h5 className="fw-bold text-dark">No Patient Selected</h5>
+                      <p className="small max-w-xs mb-0">Search and select a patient from the directory on the left to pull and inspect their physiological reports.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

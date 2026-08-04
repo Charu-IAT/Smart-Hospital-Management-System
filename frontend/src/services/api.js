@@ -12,7 +12,7 @@ const api = axios.create({
 // Request interceptor to append JWT token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -29,7 +29,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       // Clear token and reload or redirect
-      localStorage.clear();
+      sessionStorage.clear();
       if (!window.location.pathname.endsWith('/login') && !window.location.pathname.endsWith('/')) {
         window.location.href = '/login';
       }

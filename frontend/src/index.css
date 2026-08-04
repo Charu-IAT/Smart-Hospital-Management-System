@@ -205,3 +205,52 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(37, 99, 235, 0.4);
 }
+
+/* Print layout styles for invoice receipt */
+@media print {
+  /* Hide navbar, navigation tabs, chatbot, buttons and notice boxes */
+  nav,
+  .nav,
+  .nav-pills,
+  .glass-card:not(.print-receipt-container),
+  .chatbot-container,
+  .chatbot-toggle,
+  .print-receipt-actions,
+  .alert-info,
+  .btn-close {
+    display: none !important;
+  }
+
+  /* Reset main layouts */
+  body, html {
+    background: white !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ensure the success overlay takes standard static document flow */
+  .position-fixed {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .print-receipt-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 20px !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .print-receipt-container .bg-light {
+    background-color: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+}

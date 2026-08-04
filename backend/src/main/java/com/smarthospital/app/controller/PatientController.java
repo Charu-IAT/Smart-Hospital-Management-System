@@ -72,4 +72,9 @@ public class PatientController {
     public ResponseEntity<List<MedicalHistory>> getMedicalHistory(@PathVariable Long id) {
         return ResponseEntity.ok(medicalHistoryRepository.findByPatientId(id));
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<Patient>> getAllPatients() {
+        return ResponseEntity.ok(patientRepository.findAll());
+    }
 }

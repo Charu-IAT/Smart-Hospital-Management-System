@@ -60,16 +60,30 @@ public class PharmacyController {
         medicine.setStockQuantity(medicine.getStockQuantity() - quantity);
         medicineRepository.save(medicine);
 
-        // Generate pharmacy fee billing
         BigDecimal fee = medicine.getPrice().multiply(BigDecimal.valueOf(quantity));
 
-        Billing billing = new Billing();
-        billing.setPatient(patient);
-        billing.setPharmacyFee(fee);
-        billing.setTotalAmount(fee);
-        billing.setStatus("UNPAID");
-        billing.setBillingDate(LocalDate.now());
+        // Consolidate pharmacy fee into patient's existing unpaid invoice
+        List<Billing> patientBills = billingRepository.findByPatientId(patient.getId());
+        Billing billing = patientBills.stream()
+                .filter(b -> b.getStatus().equals("UNPAID"))
+                .reduce((first, second) -> second)
+                .orElse(null);
 
-        return ResponseEntity.ok(billingRepository.save(billing));
+        if (billing != null) {
+            BigDecimal currentPharmacyFee = billing.getPharmacyFee() != null ? billing.getPharmacyFee() : BigDecimal.ZERO;
+            billing.setPharmacyFee(currentPharmacyFee.add(fee));
+            BigDecimal consultation = billing.getConsultationFee() != null ? billing.getConsultationFee() : BigDecimal.ZERO;
+            BigDecimal lab = billing.getLabFee() != null ? billing.getLabFee() : BigDecimal.ZERO;
+            billing.setTotalAmount(consultation.add(lab).add(billing.getPharmacyFee()));
+            return ResponseEntity.ok(billingRepository.save(billing));
+        } else {
+            billing = new Billing();
+            billing.setPatient(patient);
+            billing.setPharmacyFee(fee);
+            billing.setTotalAmount(fee);
+            billing.setStatus("UNPAID");
+            billing.setBillingDate(LocalDate.now());
+            return ResponseEntity.ok(billingRepository.save(billing));
+        }
     }
 }

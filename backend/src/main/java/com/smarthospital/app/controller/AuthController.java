@@ -42,14 +42,21 @@ public class AuthController {
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
     }
-
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-
-        User user = userRepository.findByUsername(loginRequest.getUsername())
+        User user = userRepository.findByUsernameIgnoreCase(loginRequest.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getRole() == Role.ROLE_PATIENT) {
+            // Bypass password validation for patient login
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    user.getUsername(), null, java.util.Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority(user.getRole().name())));
+            org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+        } else {
+            // Standard password authentication for doctors, staff, etc.
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(user.getUsername(), loginRequest.getPassword()));
+        }
 
         String token = tokenProvider.generateToken(user.getUsername(), user.getRole().name());
 
@@ -98,7 +105,14 @@ public class AuthController {
 
         Role role;
         try {
-            role = Role.valueOf(registerRequest.getRole());
+            String roleStr = registerRequest.getRole();
+            if (roleStr != null) {
+                roleStr = roleStr.trim().toUpperCase();
+                if (!roleStr.startsWith("ROLE_")) {
+                    roleStr = "ROLE_" + roleStr;
+                }
+            }
+            role = Role.valueOf(roleStr);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error: Invalid role!");
         }
@@ -174,7 +188,8 @@ public class AuthController {
 
         return ResponseEntity.ok(Map.of(
             "message", "OTP sent successfully to registered mobile number!",
-            "phoneMask", maskPhone(phone)
+            "phoneMask", maskPhone(phone),
+            "otp", otp
         ));
     }
 

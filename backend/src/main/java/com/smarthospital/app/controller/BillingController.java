@@ -21,15 +21,17 @@ public class BillingController {
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
+    private final LabReportRepository labReportRepository;
 
     public BillingController(BillingRepository billingRepository, PaymentRepository paymentRepository,
                              AppointmentRepository appointmentRepository, PatientRepository patientRepository,
-                             UserRepository userRepository) {
+                             UserRepository userRepository, LabReportRepository labReportRepository) {
         this.billingRepository = billingRepository;
         this.paymentRepository = paymentRepository;
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
+        this.labReportRepository = labReportRepository;
     }
 
     private Patient getAuthenticatedPatient() {
@@ -69,6 +71,15 @@ public class BillingController {
             Appointment appointment = billing.getAppointment();
             appointment.setPaymentStatus("PAID");
             appointmentRepository.save(appointment);
+        }
+
+        // Update lab report payment status if linked
+        if (billing.getLabFee() != null && billing.getLabFee().compareTo(BigDecimal.ZERO) > 0) {
+            List<LabReport> reports = labReportRepository.findByPatientId(billing.getPatient().getId());
+            for (LabReport r : reports) {
+                r.setPaymentStatus("PAID");
+                labReportRepository.save(r);
+            }
         }
 
         Payment payment = new Payment();

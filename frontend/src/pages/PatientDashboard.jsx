@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import VisualReport from '../components/VisualReport';
 
 export default function PatientDashboard() {
   const [profile, setProfile] = useState(null);
@@ -15,6 +16,8 @@ export default function PatientDashboard() {
   const [isPaying, setIsPaying] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [payments, setPayments] = useState([]);
+  const [rptViewMode, setRptViewMode] = useState({});
+  const [selectedReportForView, setSelectedReportForView] = useState(null);
 
   // Active section state
   const [activeSection, setActiveSection] = useState('profile');
@@ -207,6 +210,7 @@ export default function PatientDashboard() {
         <li><button className={`nav-link rounded-3 fw-semibold ${activeSection === 'appointments' ? 'active btn-premium-primary text-white' : 'text-dark'}`} onClick={() => setActiveSection('appointments')}><i className="bi bi-calendar-check-fill me-2"></i>Visits Queue</button></li>
         <li><button className={`nav-link rounded-3 fw-semibold ${activeSection === 'billing' ? 'active btn-premium-primary text-white' : 'text-dark'}`} onClick={() => setActiveSection('billing')}><i className="bi bi-credit-card-fill me-2"></i>Settlements</button></li>
         <li><button className={`nav-link rounded-3 fw-semibold ${activeSection === 'records' ? 'active btn-premium-primary text-white' : 'text-dark'}`} onClick={() => setActiveSection('records')}><i className="bi bi-file-medical-fill me-2"></i>Clinical Records</button></li>
+        <li><button className={`nav-link rounded-3 fw-semibold ${activeSection === 'lab-reports' ? 'active btn-premium-primary text-white' : 'text-dark'}`} onClick={() => setActiveSection('lab-reports')}><i className="bi bi-file-earmark-bar-graph me-2"></i>Lab Reports</button></li>
         <li><button className={`nav-link rounded-3 fw-semibold ${activeSection === 'ai-tools' ? 'active btn-premium-primary text-white' : 'text-dark'}`} onClick={() => setActiveSection('ai-tools')}><i className="bi bi-robot me-2"></i>AI Healthcare</button></li>
       </ul>
 

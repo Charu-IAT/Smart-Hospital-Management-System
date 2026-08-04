@@ -36,5 +36,8 @@ public class LabReport {
     private String uploadedBy;
 
     @Column(length = 20)
-    private String status = "PENDING"; // PENDING, COMPLETED
+    private String status = "PENDING"; // PENDING, SAMPLE_COLLECTED, COMPLETED
+
+    @Column(name = "payment_status", length = 20)
+    private String paymentStatus = "UNPAID"; // UNPAID, PAID
 }

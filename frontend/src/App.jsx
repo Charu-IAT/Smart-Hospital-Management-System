@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
@@ -10,8 +10,8 @@ import LabPortal from './pages/LabPortal';
 import InsurancePortal from './pages/InsurancePortal';
 
 function ProtectedRoute({ children, allowedRoles }) {
-  const token = localStorage.getItem('token');
-  const role = localStorage.getItem('role');
+  const token = sessionStorage.getItem('token');
+  const role = sessionStorage.getItem('role');
 
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -25,12 +25,20 @@ function ProtectedRoute({ children, allowedRoles }) {
 }
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const token = sessionStorage.getItem('token');
+    const role = sessionStorage.getItem('role');
+    const name = sessionStorage.getItem('name');
+    return token ? { token, role, name } : null;
+  });
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
-    const name = localStorage.getItem('name');
+    // Clean up persistent local storage once to remove legacy logins
+    localStorage.clear();
+
+    const token = sessionStorage.getItem('token');
+    const role = sessionStorage.getItem('role');
+    const name = sessionStorage.getItem('name');
 
     if (token) {
       setUser({ token, role, name });
@@ -38,7 +46,7 @@ export default function App() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.clear();
+    sessionStorage.clear();
     setUser(null);
     window.location.href = '/';
   };

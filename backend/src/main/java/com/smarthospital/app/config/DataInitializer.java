@@ -33,5 +33,27 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(admin);
             System.out.println("\n[SEED SUCCESS] Master Admin account created (username: admin / password: admin123)\n");
         }
+
+        if (userRepository.findByUsername("pharmacy").isEmpty()) {
+            User pharmacist = new User();
+            pharmacist.setUsername("pharmacy");
+            pharmacist.setPassword(passwordEncoder.encode("pharmacy123"));
+            pharmacist.setEmail("pharmacy@smarthospital.com");
+            pharmacist.setRole(Role.ROLE_PHARMACIST);
+            pharmacist.setDateCreated(LocalDateTime.now());
+            userRepository.save(pharmacist);
+            System.out.println("[SEED SUCCESS] Pharmacist account created (username: pharmacy / password: pharmacy123)");
+        }
+
+        if (userRepository.findByUsername("lab").isEmpty()) {
+            User labStaff = new User();
+            labStaff.setUsername("lab");
+            labStaff.setPassword(passwordEncoder.encode("lab123"));
+            labStaff.setEmail("lab@smarthospital.com");
+            labStaff.setRole(Role.ROLE_LAB_STAFF);
+            labStaff.setDateCreated(LocalDateTime.now());
+            userRepository.save(labStaff);
+            System.out.println("[SEED SUCCESS] Lab Staff account created (username: lab / password: lab123)");
+        }
     }
 }

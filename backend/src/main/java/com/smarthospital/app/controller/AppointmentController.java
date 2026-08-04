@@ -38,13 +38,24 @@ public class AppointmentController {
     }
 
     @PostMapping("/book")
-    public ResponseEntity<Appointment> bookAppointment(@RequestBody Appointment request) {
+    public ResponseEntity<?> bookAppointment(@RequestBody Appointment request) {
         User user = getAuthenticatedUser();
         Patient patient = patientRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new RuntimeException("Patient profile not found"));
 
         Doctor doctor = doctorRepository.findById(request.getDoctor().getId())
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
+
+        // Check if doctor is already booked for this date and time slot
+        List<Appointment> doctorAppointments = appointmentRepository.findByDoctorId(doctor.getId());
+        boolean alreadyBooked = doctorAppointments.stream()
+                .anyMatch(app -> app.getAppointmentDate().equals(request.getAppointmentDate())
+                        && app.getTimeSlot().equalsIgnoreCase(request.getTimeSlot())
+                        && !app.getStatus().equalsIgnoreCase("CANCELLED"));
+
+        if (alreadyBooked) {
+            return ResponseEntity.badRequest().body("This doctor is not available for this time slot (already booked).");
+        }
 
         Appointment appointment = new Appointment();
         appointment.setPatient(patient);
@@ -89,5 +100,16 @@ public class AppointmentController {
     @GetMapping("/all")
     public ResponseEntity<List<Appointment>> getAllAppointments() {
         return ResponseEntity.ok(appointmentRepository.findAll());
+    }
+
+    @GetMapping("/booked-slots")
+    public ResponseEntity<List<String>> getBookedSlots(@RequestParam Long doctorId,
+                                                       @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate date) {
+        List<Appointment> apps = appointmentRepository.findByDoctorId(doctorId);
+        List<String> bookedSlots = apps.stream()
+                .filter(app -> app.getAppointmentDate().equals(date) && !app.getStatus().equalsIgnoreCase("CANCELLED"))
+                .map(Appointment::getTimeSlot)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(bookedSlots);
     }
 }

@@ -87,4 +87,10 @@ public class DoctorController {
 
         return ResponseEntity.ok(saved);
     }
+
+    @GetMapping("/prescriptions")
+    public ResponseEntity<List<Prescription>> getDoctorPrescriptions() {
+        Doctor doctor = getAuthenticatedDoctor();
+        return ResponseEntity.ok(prescriptionRepository.findByDoctorId(doctor.getId()));
+    }
 }
