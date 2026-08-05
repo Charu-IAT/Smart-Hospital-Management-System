@@ -77,7 +77,8 @@ public class LabController {
 
     @PostMapping("/order")
     public ResponseEntity<LabReport> orderTest(@RequestParam Long patientId,
-                                               @RequestParam String testName) {
+                                               @RequestParam String testName,
+                                               @RequestParam(required = false) Double price) {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
 
@@ -96,6 +97,8 @@ public class LabController {
 
         LabReport savedReport = labReportRepository.save(report);
 
+        double testPrice = price != null ? price : 30.00;
+
         // Consolidate laboratory fee into patient's existing unpaid invoice
         List<Billing> patientBills = billingRepository.findByPatientId(patient.getId());
         Billing billing = patientBills.stream()
@@ -105,7 +108,7 @@ public class LabController {
 
         if (billing != null) {
             BigDecimal currentLabFee = billing.getLabFee() != null ? billing.getLabFee() : BigDecimal.ZERO;
-            billing.setLabFee(currentLabFee.add(BigDecimal.valueOf(30.00)));
+            billing.setLabFee(currentLabFee.add(BigDecimal.valueOf(testPrice)));
             BigDecimal consultation = billing.getConsultationFee() != null ? billing.getConsultationFee() : BigDecimal.ZERO;
             BigDecimal pharmacy = billing.getPharmacyFee() != null ? billing.getPharmacyFee() : BigDecimal.ZERO;
             billing.setTotalAmount(consultation.add(billing.getLabFee()).add(pharmacy));
@@ -113,8 +116,8 @@ public class LabController {
         } else {
             billing = new Billing();
             billing.setPatient(patient);
-            billing.setLabFee(BigDecimal.valueOf(30.00));
-            billing.setTotalAmount(BigDecimal.valueOf(30.00));
+            billing.setLabFee(BigDecimal.valueOf(testPrice));
+            billing.setTotalAmount(BigDecimal.valueOf(testPrice));
             billing.setStatus("UNPAID");
             billing.setBillingDate(LocalDate.now());
             billingRepository.save(billing);

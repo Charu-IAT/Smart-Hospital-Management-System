@@ -14,12 +14,14 @@ public class InsuranceController {
     private final InsuranceRepository insuranceRepository;
     private final PatientRepository patientRepository;
     private final BillingRepository billingRepository;
+    private final PaymentRepository paymentRepository;
 
     public InsuranceController(InsuranceRepository insuranceRepository, PatientRepository patientRepository,
-                               BillingRepository billingRepository) {
+                               BillingRepository billingRepository, PaymentRepository paymentRepository) {
         this.insuranceRepository = insuranceRepository;
         this.patientRepository = patientRepository;
         this.billingRepository = billingRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     @GetMapping("/all")
@@ -28,30 +30,38 @@ public class InsuranceController {
     }
 
     @GetMapping("/patient/{patientId}")
-    public ResponseEntity<?> getInsuranceByPatient(@PathVariable Long patientId) {
-        Optional<Insurance> ins = insuranceRepository.findByPatientId(patientId);
-        if (ins.isPresent()) {
-            return ResponseEntity.ok(ins.get());
-        }
-        return ResponseEntity.notFound().build();
+    public ResponseEntity<List<Insurance>> getInsuranceByPatient(@PathVariable Long patientId) {
+        return ResponseEntity.ok(insuranceRepository.findByPatientId(patientId));
     }
 
     @PostMapping("/verify")
     public ResponseEntity<Insurance> verifyInsurance(@RequestParam Long patientId,
                                                      @RequestParam String policyNumber,
                                                      @RequestParam String provider,
-                                                     @RequestParam String coverageDetails) {
+                                                     @RequestParam String coverageDetails,
+                                                     @RequestParam(required = false) java.math.BigDecimal premium,
+                                                     @RequestParam(required = false) String paymentMethod) {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
 
-        Insurance ins = insuranceRepository.findByPatientId(patientId).orElse(new Insurance());
+        Insurance ins = new Insurance();
         ins.setPatient(patient);
         ins.setPolicyNumber(policyNumber);
         ins.setProvider(provider);
         ins.setCoverageDetails(coverageDetails);
         ins.setStatus("VERIFIED");
+        
+        if (premium != null) {
+            ins.setPremium(premium);
+            ins.setPaymentStatus("PAID");
+        } else {
+            ins.setPremium(java.math.BigDecimal.ZERO);
+            ins.setPaymentStatus("UNPAID");
+        }
 
-        return ResponseEntity.ok(insuranceRepository.save(ins));
+        Insurance saved = insuranceRepository.save(ins);
+
+        return ResponseEntity.ok(saved);
     }
 
     @PostMapping("/claim")
@@ -63,12 +73,11 @@ public class InsuranceController {
             throw new RuntimeException("Bill status is: " + billing.getStatus() + ". Claim cannot be submitted.");
         }
 
-        // Verify patient has insurance
-        Insurance ins = insuranceRepository.findByPatientId(billing.getPatient().getId())
-                .orElseThrow(() -> new RuntimeException("No active insurance found for patient"));
-
-        if (!ins.getStatus().equals("VERIFIED")) {
-            throw new RuntimeException("Insurance policy is not verified");
+        // Verify patient has at least one active verified insurance policy
+        List<Insurance> insurances = insuranceRepository.findByPatientId(billing.getPatient().getId());
+        boolean hasVerified = insurances.stream().anyMatch(i -> i.getStatus().equals("VERIFIED"));
+        if (!hasVerified) {
+            throw new RuntimeException("No active verified insurance found for patient");
         }
 
         // Apply insurance coverage

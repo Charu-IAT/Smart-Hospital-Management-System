@@ -26,6 +26,16 @@ function ProtectedRoute({ children, allowedRoles }) {
 
 export default function App() {
   const [user, setUser] = useState(() => {
+    const isReload = 
+      performance.getEntriesByType('navigation')[0]?.type === 'reload' ||
+      performance.navigation?.type === 1;
+
+    if (isReload) {
+      sessionStorage.clear();
+      localStorage.clear();
+      return null;
+    }
+    
     const token = sessionStorage.getItem('token');
     const role = sessionStorage.getItem('role');
     const name = sessionStorage.getItem('name');
@@ -33,15 +43,25 @@ export default function App() {
   });
 
   useEffect(() => {
-    // Clean up persistent local storage once to remove legacy logins
-    localStorage.clear();
+    const isReload = 
+      performance.getEntriesByType('navigation')[0]?.type === 'reload' ||
+      performance.navigation?.type === 1;
 
-    const token = sessionStorage.getItem('token');
-    const role = sessionStorage.getItem('role');
-    const name = sessionStorage.getItem('name');
+    if (isReload) {
+      sessionStorage.clear();
+      localStorage.clear();
+      setUser(null);
+      window.location.hash = '/';
+    } else {
+      localStorage.clear();
 
-    if (token) {
-      setUser({ token, role, name });
+      const token = sessionStorage.getItem('token');
+      const role = sessionStorage.getItem('role');
+      const name = sessionStorage.getItem('name');
+
+      if (token) {
+        setUser({ token, role, name });
+      }
     }
   }, []);
 
@@ -87,12 +107,12 @@ export default function App() {
                       <Link className="nav-link nav-link-custom" to="/patient">Patient Panel</Link>
                     </li>
                   )}
-                  {(user.role === 'ROLE_PHARMACIST' || user.role === 'ROLE_ADMIN') && (
+                  {user.role === 'ROLE_PHARMACIST' && (
                     <li className="nav-item">
                       <Link className="nav-link nav-link-custom" to="/pharmacy">Pharmacy</Link>
                     </li>
                   )}
-                  {(user.role === 'ROLE_LAB_STAFF' || user.role === 'ROLE_ADMIN') && (
+                  {user.role === 'ROLE_LAB_STAFF' && (
                     <li className="nav-item">
                       <Link className="nav-link nav-link-custom" to="/lab">Laboratory</Link>
                     </li>
@@ -128,7 +148,7 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login onLoginSuccess={(userData) => setUser(userData)} />} />
         
         {/* Protected Dashboard Routes */}
         <Route path="/admin" element={
@@ -150,13 +170,13 @@ export default function App() {
         } />
 
         <Route path="/pharmacy" element={
-          <ProtectedRoute allowedRoles={['ROLE_PHARMACIST', 'ROLE_ADMIN']}>
+          <ProtectedRoute allowedRoles={['ROLE_PHARMACIST']}>
             <PharmacyPortal />
           </ProtectedRoute>
         } />
 
         <Route path="/lab" element={
-          <ProtectedRoute allowedRoles={['ROLE_LAB_STAFF', 'ROLE_ADMIN']}>
+          <ProtectedRoute allowedRoles={['ROLE_LAB_STAFF']}>
             <LabPortal />
           </ProtectedRoute>
         } />

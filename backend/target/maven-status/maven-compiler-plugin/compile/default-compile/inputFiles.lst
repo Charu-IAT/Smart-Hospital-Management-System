@@ -1,4 +1,5 @@
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\config\DataInitializer.java
+C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\config\HashGenerator.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\controller\AdminController.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\controller\AiController.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\controller\AppointmentController.java
@@ -16,6 +17,7 @@ C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Manage
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\model\Billing.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\model\Department.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\model\Doctor.java
+C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\model\HealthReport.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\model\Insurance.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\model\Inventory.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\model\LabReport.java
@@ -30,6 +32,7 @@ C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Manage
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\repository\BillingRepository.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\repository\DepartmentRepository.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\repository\DoctorRepository.java
+C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\repository\HealthReportRepository.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\repository\InsuranceRepository.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\repository\InventoryRepository.java
 C:\Users\dhana\OneDrive\Documents\Main Projects\Project -2\Smart-Hospital-Management-System\backend\src\main\java\com\smarthospital\app\repository\LabReportRepository.java

@@ -159,3 +159,18 @@ CREATE TABLE IF NOT EXISTS insurance (
     status VARCHAR(20) DEFAULT 'VERIFIED', -- VERIFIED, EXPIRED, PENDING
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
 );
+
+-- 14. Health Reports / Vitals Table
+CREATE TABLE IF NOT EXISTS health_reports (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    patient_id BIGINT NOT NULL,
+    weight DOUBLE NOT NULL,
+    bp VARCHAR(20) NOT NULL,
+    height DOUBLE,
+    temperature DOUBLE,
+    heart_rate INT,
+    sugar_level DOUBLE,
+    notes TEXT,
+    date_recorded TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+);

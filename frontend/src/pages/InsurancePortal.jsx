@@ -44,7 +44,14 @@ export default function InsurancePortal() {
     }
 
     try {
-      await api.post(`/api/insurance/verify?patientId=${verifyForm.patientId}&policyNumber=${verifyForm.policyNumber}&provider=${verifyForm.provider}&coverageDetails=${verifyForm.coverageDetails}`);
+      await api.post('/api/insurance/verify', null, {
+        params: {
+          patientId: verifyForm.patientId,
+          policyNumber: verifyForm.policyNumber,
+          provider: verifyForm.provider,
+          coverageDetails: verifyForm.coverageDetails
+        }
+      });
       setMessage('Insurance policy verified successfully!');
       setVerifyForm({ patientId: '', policyNumber: '', provider: '', coverageDetails: '' });
       fetchPolicies();

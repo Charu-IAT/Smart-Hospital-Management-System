@@ -64,12 +64,14 @@ public class AdminController {
 
     @PostMapping("/inventory")
     public ResponseEntity<Inventory> addInventoryItem(@RequestBody Inventory item) {
-        if (item.getQuantity() <= item.getThreshold()) {
-            item.setStatus("LOW_STOCK");
-        } else if (item.getQuantity() == 0) {
-            item.setStatus("OUT_OF_STOCK");
-        } else {
-            item.setStatus("IN_STOCK");
+        if (item.getStatus() == null || item.getStatus().isEmpty()) {
+            if (item.getQuantity() <= item.getThreshold()) {
+                item.setStatus("LOW_STOCK");
+            } else if (item.getQuantity() == 0) {
+                item.setStatus("OUT_OF_STOCK");
+            } else {
+                item.setStatus("IN_STOCK");
+            }
         }
         return ResponseEntity.ok(inventoryRepository.save(item));
     }

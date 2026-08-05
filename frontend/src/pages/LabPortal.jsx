@@ -159,10 +159,22 @@ export default function LabPortal() {
   const [markers, setMarkers] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [filterLogsByPatient, setFilterLogsByPatient] = useState(true);
+  const [patientsList, setPatientsList] = useState([]);
 
   useEffect(() => {
     fetchReports();
+    fetchPatients();
   }, []);
+
+  const fetchPatients = async () => {
+    try {
+      const res = await api.get('/api/patients/all');
+      setPatientsList(res.data);
+    } catch (err) {
+      console.error("Error loading patients directory:", err);
+    }
+  };
 
   const fetchReports = async () => {
     try {
@@ -369,7 +381,15 @@ Disclaimer: Please consult with your physician for clinical interpretation.
   };
 
   const pendingOrders = reports.filter(r => r.status === 'PENDING' || r.status === 'SAMPLE_COLLECTED');
-  const completedReports = reports.filter(r => r.status === 'COMPLETED');
+  
+  // Filter completed reports by active Patient ID if toggle is enabled
+  const completedReports = reports.filter(r => {
+    if (r.status !== 'COMPLETED') return false;
+    if (filterLogsByPatient && uploadForm.patientId) {
+      return r.patient?.id?.toString() === uploadForm.patientId.toString();
+    }
+    return true;
+  });
 
   return (
     <div className="container py-4 animate-fade-in">
@@ -405,6 +425,12 @@ Disclaimer: Please consult with your physician for clinical interpretation.
               <div className="mb-3">
                 <label className="form-label small fw-semibold text-dark">Patient ID</label>
                 <input type="number" className="form-control rounded-3" placeholder="Enter Patient ID (e.g. 1)" value={uploadForm.patientId} onChange={e => setUploadForm({...uploadForm, patientId: e.target.value})} required />
+                {patientsList.find(p => p.id?.toString() === uploadForm.patientId?.toString()) && (
+                  <div className="mt-1.5 small text-success fw-bold animate-fade-in d-flex align-items-center gap-1">
+                    <i className="bi bi-person-check-fill fs-6"></i>
+                    <span>Verified Patient: <span className="text-dark fw-extrabold">{patientsList.find(p => p.id?.toString() === uploadForm.patientId?.toString())?.name}</span></span>
+                  </div>
+                )}
               </div>
 
               <div className="mb-3">
@@ -612,9 +638,26 @@ Disclaimer: Please consult with your physician for clinical interpretation.
 
           {/* Completed Reports Logs */}
           <div className="glass-card p-4 table-responsive border-success">
-            <h4 className="fw-bold mb-3 text-success-emphasis"><i className="bi bi-journal-medical me-2"></i>Completed Diagnostics Logs</h4>
+            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3">
+              <h4 className="fw-bold mb-0 text-success-emphasis"><i className="bi bi-journal-medical me-2"></i>Completed Diagnostics Logs</h4>
+              {uploadForm.patientId && (
+                <div className="form-check form-switch mt-2 mt-sm-0 bg-success bg-opacity-10 px-4 py-1.5 rounded-3 border border-success-subtle d-flex align-items-center gap-2">
+                  <input 
+                    className="form-check-input ms-0" 
+                    type="checkbox" 
+                    id="filterPatientSwitch" 
+                    checked={filterLogsByPatient} 
+                    onChange={e => setFilterLogsByPatient(e.target.checked)} 
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <label className="form-check-label small text-success-emphasis fw-semibold" htmlFor="filterPatientSwitch" style={{ cursor: 'pointer' }}>
+                    Show only Patient ID #{uploadForm.patientId}
+                  </label>
+                </div>
+              )}
+            </div>
             {completedReports.length === 0 ? (
-              <p className="text-muted small mb-0">No finalized diagnostic reports found.</p>
+              <p className="text-muted small mb-0">No finalized diagnostic reports found for the current query.</p>
             ) : (
               <table className="table table-hover align-middle">
                 <thead>

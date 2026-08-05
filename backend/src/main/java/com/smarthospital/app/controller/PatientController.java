@@ -18,15 +18,17 @@ public class PatientController {
     private final PrescriptionRepository prescriptionRepository;
     private final LabReportRepository labReportRepository;
     private final MedicalHistoryRepository medicalHistoryRepository;
+    private final HealthReportRepository healthReportRepository;
 
     public PatientController(PatientRepository patientRepository, UserRepository userRepository,
                              PrescriptionRepository prescriptionRepository, LabReportRepository labReportRepository,
-                             MedicalHistoryRepository medicalHistoryRepository) {
+                             MedicalHistoryRepository medicalHistoryRepository, HealthReportRepository healthReportRepository) {
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
         this.prescriptionRepository = prescriptionRepository;
         this.labReportRepository = labReportRepository;
         this.medicalHistoryRepository = medicalHistoryRepository;
+        this.healthReportRepository = healthReportRepository;
     }
 
     private Patient getAuthenticatedPatient() {
@@ -76,5 +78,52 @@ public class PatientController {
     @GetMapping("/all")
     public ResponseEntity<List<Patient>> getAllPatients() {
         return ResponseEntity.ok(patientRepository.findAll());
+    }
+
+    @PostMapping("/health-report")
+    public ResponseEntity<?> createHealthReport(@RequestBody HealthReport report) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        System.out.println("DEBUG: createHealthReport endpoint hit. Authenticated Username: " + username);
+        
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        
+        System.out.println("DEBUG: User Role from DB: " + user.getRole());
+        
+        Patient patient;
+        if (user.getRole() == Role.ROLE_PATIENT) {
+            patient = patientRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new RuntimeException("Patient profile not found for user: " + username));
+            report.setPatient(patient);
+        } else if (user.getRole() == Role.ROLE_ADMIN || user.getRole() == Role.ROLE_DOCTOR) {
+            if (report.getPatient() == null || report.getPatient().getId() == null) {
+                return ResponseEntity.badRequest().body("Error: Patient ID is required for administrative vital entries.");
+            }
+            patient = patientRepository.findById(report.getPatient().getId())
+                    .orElseThrow(() -> new RuntimeException("Patient not found with ID: " + report.getPatient().getId()));
+            report.setPatient(patient);
+        } else {
+            String errMsg = "Error: Unauthorized to log patient health reports. Your username: " + username + ", Your Role: " + (user.getRole() != null ? user.getRole().name() : "null");
+            System.out.println("DEBUG: " + errMsg);
+            return ResponseEntity.status(403).body(errMsg);
+        }
+
+        if (report.getDateRecorded() == null) {
+            report.setDateRecorded(java.time.LocalDateTime.now());
+        }
+        HealthReport saved = healthReportRepository.save(report);
+        return ResponseEntity.ok(saved);
+    }
+
+    @GetMapping("/health-report")
+    public ResponseEntity<List<HealthReport>> getMyHealthReports() {
+        Patient patient = getAuthenticatedPatient();
+        return ResponseEntity.ok(healthReportRepository.findByPatientIdOrderByDateRecordedDesc(patient.getId()));
+    }
+
+    @GetMapping("/{id}/health-report")
+    public ResponseEntity<List<HealthReport>> getPatientHealthReports(@PathVariable Long id) {
+        return ResponseEntity.ok(healthReportRepository.findByPatientIdOrderByDateRecordedDesc(id));
     }
 }

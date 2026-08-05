@@ -85,6 +85,10 @@ body {
 }
 
 /* Custom UI Elements */
+.bg-premium-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #3b82f6 100%) !important;
+}
+
 .btn-premium-primary {
   background: linear-gradient(135deg, var(--primary-color) 0%, #3b82f6 100%);
   color: white;
@@ -212,7 +216,7 @@ body {
   nav,
   .nav,
   .nav-pills,
-  .glass-card:not(.print-receipt-container),
+  .glass-card:not(.print-receipt-container):not(.visual-report-wrapper),
   .chatbot-container,
   .chatbot-toggle,
   .print-receipt-actions,
@@ -253,4 +257,124 @@ body {
     background-color: #f8fafc !important;
     border: 1px solid #cbd5e1 !important;
   }
+
+  /* Visual Report Print Styling */
+  .visual-report-wrapper {
+    background: white !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .medical-report-print {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 10px !important;
+    margin: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  .medical-report-print h4,
+  .medical-report-print .fs-4 {
+    font-size: 15px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .medical-report-print h5,
+  .medical-report-print h6,
+  .medical-report-print .fs-5,
+  .medical-report-print .fs-6 {
+    font-size: 12px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .medical-report-print .row {
+    margin-bottom: 8px !important;
+  }
+
+  .medical-report-print .mb-4,
+  .medical-report-print .my-4 {
+    margin-top: 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .medical-report-print .p-4 {
+    padding: 10px !important;
+  }
+
+  .medical-report-print .p-3 {
+    padding: 8px !important;
+  }
+
+  .medical-report-print hr {
+    margin: 6px 0 !important;
+  }
+
+  .medical-report-print svg {
+    width: 70px !important;
+    height: 70px !important;
+  }
+
+  .medical-report-print .list-group-item {
+    padding: 4px 0 !important;
+  }
+
+  .medical-report-print .mt-5 {
+    margin-top: 15px !important;
+  }
+
+  /* Modal receipt print styling */
+  .modal-receipt-wrapper {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  .modal-receipt-wrapper .modal-dialog {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .modal-receipt-wrapper .modal-content {
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    width: 100% !important;
+  }
+  .modal-receipt-wrapper .modal-header,
+  .modal-receipt-wrapper .btn {
+    display: none !important;
+  }
+  .modal-receipt-wrapper .modal-body {
+    padding: 0 !important;
+    background: white !important;
+  }
+  .modal-receipt-wrapper .modal-body .bg-white {
+    border: 1px solid #cbd5e1 !important;
+    padding: 15px !important;
+  }
+
+  /* Hide dashboard when print receipt is showing */
+  body:has(.modal-receipt-wrapper) .container {
+    display: none !important;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 6mm 10mm 6mm 10mm;
 }

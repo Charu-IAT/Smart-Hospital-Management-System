@@ -24,6 +24,7 @@ export default function AdminDashboard() {
   const [patientReports, setPatientReports] = useState([]);
   const [selectedReportForRpt, setSelectedReportForRpt] = useState(null);
   const [reportSearchQuery, setReportSearchQuery] = useState('');
+  const [patientSearchQuery, setPatientSearchQuery] = useState('');
 
   const handleSelectPatientForReports = async (patient) => {
     setSelectedPatientForRpt(patient);
@@ -37,10 +38,62 @@ export default function AdminDashboard() {
     }
   };
 
+  const [healthReportForm, setHealthReportForm] = useState({
+    weight: '',
+    bp: '',
+    height: '',
+    temperature: '',
+    heartRate: '',
+    sugarLevel: '',
+    notes: ''
+  });
+
+  const handleSaveHealthReport = async (e) => {
+    e.preventDefault();
+    if (!selectedPatientForRpt) {
+      alert("Please select a patient first!");
+      return;
+    }
+    if (!healthReportForm.weight || !healthReportForm.bp) {
+      alert("Weight and Blood Pressure are required!");
+      return;
+    }
+    try {
+      const payload = {
+        patient: { id: selectedPatientForRpt.id },
+        weight: parseFloat(healthReportForm.weight),
+        bp: healthReportForm.bp,
+        height: healthReportForm.height ? parseFloat(healthReportForm.height) : null,
+        temperature: healthReportForm.temperature ? parseFloat(healthReportForm.temperature) : null,
+        heartRate: healthReportForm.heartRate ? parseInt(healthReportForm.heartRate) : null,
+        sugarLevel: healthReportForm.sugarLevel ? parseFloat(healthReportForm.sugarLevel) : null,
+        notes: healthReportForm.notes
+      };
+      await api.post('/api/patients/health-report', payload);
+      setMessage("Health report logged successfully!");
+      setTimeout(() => setMessage(''), 4000);
+      setHealthReportForm({
+        weight: '',
+        bp: '',
+        height: '',
+        temperature: '',
+        heartRate: '',
+        sugarLevel: '',
+        notes: ''
+      });
+    } catch (err) {
+      console.error("Error saving health report:", err);
+      const errorMsg = err.response?.data 
+        ? (typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data))
+        : err.message;
+      alert("Error saving health report: " + errorMsg);
+    }
+  };
+
   // Form states
   const [newDept, setNewDept] = useState({ name: '', description: '' });
   const [showDeptModal, setShowDeptModal] = useState(false);
-  const [newInv, setNewInv] = useState({ itemName: '', category: '', quantity: 10, threshold: 5 });
+  const [newInv, setNewInv] = useState({ itemName: '', category: '', quantity: 10, threshold: 5, status: 'IN_STOCK' });
   const [restockQty, setRestockQty] = useState({});
   const [message, setMessage] = useState('');
   const [regForm, setRegForm] = useState({
@@ -67,6 +120,15 @@ export default function AdminDashboard() {
     fetchInventory();
     fetchBills();
   }, []);
+
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage('');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const fetchStats = async () => {
     try {
@@ -125,7 +187,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     try {
       await api.post('/api/admin/inventory', newInv);
-      setNewInv({ itemName: '', category: '', quantity: 10, threshold: 5 });
+      setNewInv({ itemName: '', category: '', quantity: 10, threshold: 5, status: 'IN_STOCK' });
       setMessage('Inventory item added successfully!');
       fetchInventory();
       fetchStats();
@@ -185,6 +247,28 @@ export default function AdminDashboard() {
       setMessage(err.response?.data || 'Error registering user');
     }
   };
+
+  const filteredPatientsForRpt = patients.filter(p => {
+    const query = reportSearchQuery.toLowerCase();
+    return (
+      (p.name && p.name.toLowerCase().includes(query)) ||
+      (p.phone && p.phone.toLowerCase().includes(query)) ||
+      (p.address && p.address.toLowerCase().includes(query)) ||
+      (p.allergies && p.allergies.toLowerCase().includes(query)) ||
+      (p.medicalHistory && p.medicalHistory.toLowerCase().includes(query))
+    );
+  });
+
+  const filteredPatientsForDirectory = patients.filter(p => {
+    const query = patientSearchQuery.toLowerCase();
+    return (
+      (p.name && p.name.toLowerCase().includes(query)) ||
+      (p.phone && p.phone.toLowerCase().includes(query)) ||
+      (p.address && p.address.toLowerCase().includes(query)) ||
+      (p.allergies && p.allergies.toLowerCase().includes(query)) ||
+      (p.medicalHistory && p.medicalHistory.toLowerCase().includes(query))
+    );
+  });
 
   return (
     <div className="container py-4 animate-fade-in">
@@ -268,7 +352,7 @@ export default function AdminDashboard() {
           <div className="col-md-6">
             <div className="glass-card p-4 text-center">
               <i className="bi bi-cash-stack text-warning fs-1 mb-2"></i>
-              <h3 className="fw-bold">${stats.totalRevenue?.toFixed(2)}</h3>
+              <h3 className="fw-bold">₹{stats.totalRevenue?.toFixed(2)}</h3>
               <p className="text-muted mb-0">Settled Revenue</p>
             </div>
           </div>
@@ -319,56 +403,87 @@ export default function AdminDashboard() {
 
       {/* Patients Tab */}
       {activeTab === 'patients' && (
-        <div className="glass-card p-4 table-responsive animate-fade-in">
+        <div className="glass-card p-4 table-responsive animate-fade-in text-start">
           <h4 className="fw-bold mb-3"><i className="bi bi-person-fill text-primary me-2"></i>Registered Patients Directory</h4>
           {patients.length === 0 ? (
             <p className="text-muted small">No registered patients found in directory.</p>
           ) : (
-            <table className="table table-hover align-middle">
-              <thead>
-                <tr style={{ fontSize: '0.85rem' }}>
-                  <th>ID</th>
-                  <th>Patient Name</th>
-                  <th>Age/Gender</th>
-                  <th>Blood Group</th>
-                  <th>Contact Info</th>
-                  <th>Medical Profile</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {patients.map(pat => (
-                  <tr key={pat.id} style={{ fontSize: '0.9rem' }}>
-                    <td className="font-monospace fw-bold">{pat.id}</td>
-                    <td>
-                      <span className="fw-semibold text-dark block">{pat.name}</span>
-                      <span className="text-muted small block">User: {pat.user?.username || 'N/A'}</span>
-                    </td>
-                    <td>{pat.age || 'N/A'} yrs / {pat.gender || 'N/A'}</td>
-                    <td><span className="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">{pat.bloodGroup || 'O+'}</span></td>
-                    <td>
-                      <div className="small text-muted mb-0.5"><i className="bi bi-telephone me-1"></i>{pat.phone || 'N/A'}</div>
-                      <div className="small text-muted"><i className="bi bi-geo-alt me-1"></i>{pat.address || 'N/A'}</div>
-                    </td>
-                    <td>
-                      <div className="small"><strong className="text-dark">Allergies:</strong> {pat.allergies || 'None'}</div>
-                      <div className="small"><strong className="text-dark">History:</strong> {pat.medicalHistory || 'None'}</div>
-                    </td>
-                    <td>
-                      <button 
-                        className="btn btn-sm btn-outline-primary rounded-2 px-2 py-1 small d-inline-flex align-items-center gap-1 fw-semibold"
-                        onClick={() => {
-                          handleSelectPatientForReports(pat);
-                          setActiveTab('reports');
-                        }}
-                      >
-                        <i className="bi bi-file-earmark-bar-graph"></i> View Reports
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <>
+              <div className="mb-3 col-md-5">
+                <label className="form-label small fw-bold text-dark mb-1">Search Patient by Name, Phone, Place, Allergies, or History</label>
+                <div className="input-group shadow-sm rounded-3">
+                  <span className="input-group-text bg-light border-end-0"><i className="bi bi-search text-muted"></i></span>
+                  <input 
+                    type="text" 
+                    className="form-control rounded-end-3 border-start-0" 
+                    placeholder="Type name, phone, place, allergies, or history..." 
+                    value={patientSearchQuery}
+                    onChange={e => setPatientSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {filteredPatientsForDirectory.length === 0 ? (
+                <div className="p-4 text-center text-muted border rounded-3 bg-white shadow-sm small">
+                  No patients match the search query.
+                </div>
+              ) : (
+                <table className="table table-hover align-middle bg-white shadow-sm rounded-3 overflow-hidden border">
+                  <thead>
+                    <tr style={{ fontSize: '0.85rem' }}>
+                      <th>ID</th>
+                      <th>Patient Name</th>
+                      <th>Age/Gender</th>
+                      <th>Blood Group</th>
+                      <th>Contact Info</th>
+                      <th>Medical Profile</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPatientsForDirectory.map(pat => (
+                      <tr key={pat.id} style={{ fontSize: '0.9rem' }}>
+                        <td className="font-monospace fw-bold">{pat.id}</td>
+                        <td>
+                          <span 
+                            className="fw-semibold text-primary block text-decoration-underline" 
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => {
+                              handleSelectPatientForReports(pat);
+                              setActiveTab('reports');
+                            }}
+                          >
+                            {pat.name}
+                          </span>
+                          <span className="text-muted small block">User: {pat.user?.username || 'N/A'}</span>
+                        </td>
+                        <td>{pat.age || 'N/A'} yrs / {pat.gender || 'N/A'}</td>
+                        <td><span className="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">{pat.bloodGroup || 'O+'}</span></td>
+                        <td>
+                          <div className="small text-muted mb-0.5"><i className="bi bi-telephone me-1"></i>{pat.phone || 'N/A'}</div>
+                          <div className="small text-muted"><i className="bi bi-geo-alt me-1"></i>{pat.address || 'N/A'}</div>
+                        </td>
+                        <td>
+                          <div className="small"><strong className="text-dark">Allergies:</strong> {pat.allergies || 'None'}</div>
+                          <div className="small"><strong className="text-dark">History:</strong> {pat.medicalHistory || 'None'}</div>
+                        </td>
+                        <td>
+                          <button 
+                            className="btn btn-sm btn-outline-primary rounded-2 px-2 py-1 small d-inline-flex align-items-center gap-1 fw-semibold"
+                            onClick={() => {
+                              handleSelectPatientForReports(pat);
+                              setActiveTab('reports');
+                            }}
+                          >
+                            <i className="bi bi-file-earmark-bar-graph"></i> View Reports
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
           )}
         </div>
       )}
@@ -398,33 +513,7 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {/* Department Creation Modal */}
-          {showDeptModal && (
-            <div className="modal fade show d-block animate-fade-in" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }} tabIndex="-1">
-              <div className="modal-dialog modal-dialog-centered">
-                <div className="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
-                  <div className="modal-header bg-premium-primary border-0 text-white p-3">
-                    <h5 className="modal-title fw-bold"><i className="bi bi-building me-2"></i>Create Department</h5>
-                    <button type="button" className="btn-close btn-close-white" onClick={() => setShowDeptModal(false)}></button>
-                  </div>
-                  <form onSubmit={handleAddDept} className="p-4 bg-white">
-                    <div className="mb-3">
-                      <label className="form-label small fw-semibold text-dark">Department Name</label>
-                      <input type="text" className="form-control rounded-3" value={newDept.name} onChange={e => setNewDept({...newDept, name: e.target.value})} placeholder="e.g. Cardiology" required/>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label small fw-semibold text-dark">Description</label>
-                      <textarea className="form-control rounded-3" rows="3" value={newDept.description} onChange={e => setNewDept({...newDept, description: e.target.value})} placeholder="Describe clinical functions..." required></textarea>
-                    </div>
-                    <div className="d-flex gap-2 justify-content-end mt-3">
-                      <button type="button" className="btn btn-outline-secondary rounded-3" onClick={() => setShowDeptModal(false)}>Cancel</button>
-                      <button type="submit" className="btn btn-premium-primary rounded-3">Save Department</button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          )}
+
         </div>
       )}
 
@@ -489,6 +578,14 @@ export default function AdminDashboard() {
                   <label className="form-label small fw-semibold">Low Stock Threshold</label>
                   <input type="number" className="form-control rounded-3" value={newInv.threshold} onChange={e => setNewInv({...newInv, threshold: parseInt(e.target.value)})} required/>
                 </div>
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold">Status</label>
+                  <select className="form-select rounded-3" value={newInv.status} onChange={e => setNewInv({...newInv, status: e.target.value})}>
+                    <option value="IN_STOCK">IN_STOCK</option>
+                    <option value="LOW_STOCK">LOW_STOCK</option>
+                    <option value="OUT_OF_STOCK">OUT_OF_STOCK</option>
+                  </select>
+                </div>
                 <button type="submit" className="btn btn-premium-primary w-100 rounded-3">Add Stock Item</button>
               </form>
             </div>
@@ -518,10 +615,10 @@ export default function AdminDashboard() {
                 <tr key={bill.id}>
                   <td>INV-00{bill.id}</td>
                   <td className="fw-semibold">{bill.patient?.name}</td>
-                  <td>${bill.consultationFee?.toFixed(2)}</td>
-                  <td>${bill.labFee?.toFixed(2)}</td>
-                  <td>${bill.pharmacyFee?.toFixed(2)}</td>
-                  <td className="fw-bold text-primary">${bill.totalAmount?.toFixed(2)}</td>
+                  <td>₹{bill.consultationFee?.toFixed(2)}</td>
+                  <td>₹{bill.labFee?.toFixed(2)}</td>
+                  <td>₹{bill.pharmacyFee?.toFixed(2)}</td>
+                  <td className="fw-bold text-primary">₹{bill.totalAmount?.toFixed(2)}</td>
                   <td>{bill.billingDate}</td>
                   <td>
                     <span className={`badge ${
@@ -626,37 +723,37 @@ export default function AdminDashboard() {
 
       {/* Reports Tab */}
       {activeTab === 'reports' && (
-        <div className="glass-card p-4 text-start animate-fade-in">
+        <>
           {selectedReportForRpt ? (
-            <VisualReport 
-              report={selectedReportForRpt} 
-              onBack={() => setSelectedReportForRpt(null)} 
-            />
+            <div className="glass-card visual-report-wrapper p-4 text-start animate-fade-in">
+              <VisualReport 
+                report={selectedReportForRpt} 
+                onBack={() => setSelectedReportForRpt(null)} 
+              />
+            </div>
           ) : (
-            <div>
+            <div className="glass-card p-4 text-start animate-fade-in">
               <h4 className="fw-bold mb-4"><i className="bi bi-file-earmark-bar-graph text-primary me-2"></i>Patient Visual Diagnostics Lookup</h4>
               
               <div className="row g-4 mb-4">
                 {/* Patient Search and Selector Card */}
                 <div className="col-md-5">
                   <div className="card p-3 border-light-subtle rounded-3 shadow-sm bg-white">
-                    <label className="form-label small fw-bold text-dark mb-2">Search Patient by Name</label>
+                    <label className="form-label small fw-bold text-dark mb-2">Search Patient by Name, Phone, Place, Allergies, or History</label>
                     <div className="input-group mb-3">
                       <span className="input-group-text bg-light border-end-0"><i className="bi bi-search text-muted"></i></span>
                       <input 
                         type="text" 
                         className="form-control rounded-end-3 border-start-0" 
-                        placeholder="Type name to search..." 
+                        placeholder="Type name, phone, place, allergies, or history..." 
                         value={reportSearchQuery}
                         onChange={e => setReportSearchQuery(e.target.value)}
                       />
                     </div>
 
-                    <label className="form-label small fw-bold text-dark mb-2">Select Patient ({patients.filter(p => p.name.toLowerCase().includes(reportSearchQuery.toLowerCase())).length})</label>
+                    <label className="form-label small fw-bold text-dark mb-2">Select Patient ({filteredPatientsForRpt.length})</label>
                     <div className="list-group overflow-y-auto" style={{ maxHeight: '300px' }}>
-                      {patients
-                        .filter(p => p.name.toLowerCase().includes(reportSearchQuery.toLowerCase()))
-                        .map(pat => (
+                      {filteredPatientsForRpt.map(pat => (
                           <button
                             key={pat.id}
                             type="button"
@@ -671,7 +768,7 @@ export default function AdminDashboard() {
                           </button>
                         ))
                       }
-                      {patients.filter(p => p.name.toLowerCase().includes(reportSearchQuery.toLowerCase())).length === 0 && (
+                      {filteredPatientsForRpt.length === 0 && (
                         <div className="p-3 text-center text-muted small">No patients match search query.</div>
                       )}
                     </div>
@@ -679,58 +776,142 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Patient's Lab Reports list */}
-                <div className="col-md-7">
+                <div className="col-md-7 d-flex flex-column gap-4 text-start">
                   {selectedPatientForRpt ? (
-                    <div className="card p-3 border-light-subtle rounded-3 shadow-sm bg-white h-100">
-                      <div className="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                        <div>
-                          <h6 className="fw-bold text-dark mb-0">Diagnostic Reports for {selectedPatientForRpt.name}</h6>
-                          <span className="small text-muted font-monospace">Patient ID: #{selectedPatientForRpt.id}</span>
+                    <>
+                      {/* Lab Reports Card */}
+                      <div className="card p-3 border-light-subtle rounded-3 shadow-sm bg-white">
+                        <div className="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                          <div>
+                            <h6 className="fw-bold text-dark mb-0">Diagnostic Reports for {selectedPatientForRpt.name}</h6>
+                            <span className="small text-muted font-monospace">Patient ID: #{selectedPatientForRpt.id}</span>
+                          </div>
+                          <span className="badge bg-primary px-2.5 py-1">{patientReports.length} Reports Found</span>
                         </div>
-                        <span className="badge bg-primary px-2.5 py-1">{patientReports.length} Reports Found</span>
+
+                        {patientReports.length === 0 ? (
+                          <div className="text-center py-4 text-muted small">
+                            <i className="bi bi-folder2-open fs-2 text-muted mb-1 block"></i>
+                            <p className="mb-0">No diagnostic reports finalized on file for this patient.</p>
+                          </div>
+                        ) : (
+                          <div className="table-responsive" style={{ maxHeight: '250px' }}>
+                            <table className="table table-hover align-middle mb-0">
+                              <thead>
+                                <tr style={{ fontSize: '0.8rem' }} className="text-muted">
+                                  <th>Test Name</th>
+                                  <th>Test Date</th>
+                                  <th>Status</th>
+                                  <th className="text-end">Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {patientReports.map(rep => (
+                                  <tr key={rep.id} style={{ fontSize: '0.85rem' }}>
+                                    <td className="fw-bold text-dark">{rep.testName}</td>
+                                    <td>{rep.testDate}</td>
+                                    <td>
+                                      <span className={`badge ${rep.status === 'COMPLETED' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                        {rep.status}
+                                      </span>
+                                    </td>
+                                    <td className="text-end">
+                                      <button 
+                                        className="btn btn-sm btn-premium-primary rounded-2 px-3 py-1 text-white fw-semibold small" 
+                                        onClick={() => setSelectedReportForRpt(rep)}
+                                      >
+                                        <i className="bi bi-eye-fill me-1"></i> Visual Report
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
 
-                      {patientReports.length === 0 ? (
-                        <div className="text-center py-5 text-muted">
-                          <i className="bi bi-folder2-open fs-1 text-muted mb-2 block"></i>
-                          <p className="mb-0">No diagnostic reports finalized on file for this patient.</p>
+                      {/* Log Vitals Card */}
+                      <div className="card p-3 border-light-subtle rounded-3 shadow-sm bg-white">
+                        <div className="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                          <div>
+                            <h6 className="fw-bold text-dark mb-0"><i className="bi bi-heart-pulse-fill text-danger me-1"></i>Log Vitals for {selectedPatientForRpt.name}</h6>
+                            <span className="small text-muted">Record the patient's current physiological measurements</span>
+                          </div>
                         </div>
-                      ) : (
-                        <div className="table-responsive">
-                          <table className="table table-hover align-middle">
-                            <thead>
-                              <tr style={{ fontSize: '0.8rem' }} className="text-muted">
-                                <th>Test Name</th>
-                                <th>Test Date</th>
-                                <th>Status</th>
-                                <th className="text-end">Action</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {patientReports.map(rep => (
-                                <tr key={rep.id} style={{ fontSize: '0.85rem' }}>
-                                  <td className="fw-bold text-dark">{rep.testName}</td>
-                                  <td>{rep.testDate}</td>
-                                  <td>
-                                    <span className={`badge ${rep.status === 'COMPLETED' ? 'bg-success' : 'bg-warning text-dark'}`}>
-                                      {rep.status}
-                                    </span>
-                                  </td>
-                                  <td className="text-end">
-                                    <button 
-                                      className="btn btn-sm btn-premium-primary rounded-2 px-3 py-1 text-white fw-semibold small" 
-                                      onClick={() => setSelectedReportForRpt(rep)}
-                                    >
-                                      <i className="bi bi-eye-fill me-1"></i> Visual Report
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
+
+                        <form onSubmit={handleSaveHealthReport}>
+                          <div className="row g-3 text-start">
+                            <div className="col-md-6">
+                              <label className="form-label font-semibold text-dark mb-1">Weight (kg) *</label>
+                              <input 
+                                type="number" 
+                                step="any" 
+                                className="form-control rounded-3" 
+                                placeholder="e.g. 72.5" 
+                                value={healthReportForm.weight} 
+                                onChange={e => setHealthReportForm({...healthReportForm, weight: e.target.value})} 
+                                required 
+                              />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label font-semibold text-dark mb-1">BP (mmHg) *</label>
+                              <input 
+                                type="text" 
+                                className="form-control rounded-3" 
+                                placeholder="e.g. 120/80" 
+                                value={healthReportForm.bp} 
+                                onChange={e => setHealthReportForm({...healthReportForm, bp: e.target.value})} 
+                                required 
+                              />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label font-semibold text-dark mb-1">Temp (°C)</label>
+                              <input 
+                                type="number" 
+                                step="any" 
+                                className="form-control rounded-3" 
+                                placeholder="e.g. 36.6" 
+                                value={healthReportForm.temperature} 
+                                onChange={e => setHealthReportForm({...healthReportForm, temperature: e.target.value})} 
+                              />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label font-semibold text-dark mb-1">Heart Rate (bpm)</label>
+                              <input 
+                                type="number" 
+                                className="form-control rounded-3" 
+                                placeholder="e.g. 72" 
+                                value={healthReportForm.heartRate} 
+                                onChange={e => setHealthReportForm({...healthReportForm, heartRate: e.target.value})} 
+                              />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label font-semibold text-dark mb-1">Sugar Level (mg/dL)</label>
+                              <input 
+                                type="number" 
+                                step="any" 
+                                className="form-control rounded-3" 
+                                placeholder="e.g. 95" 
+                                value={healthReportForm.sugarLevel} 
+                                onChange={e => setHealthReportForm({...healthReportForm, sugarLevel: e.target.value})} 
+                              />
+                            </div>
+                            <div className="col-12">
+                              <label className="form-label font-semibold text-dark mb-1">Clinical Notes</label>
+                              <textarea 
+                                className="form-control rounded-3" 
+                                rows="3" 
+                                placeholder="Write general clinical signs/findings here..." 
+                                value={healthReportForm.notes} 
+                                onChange={e => setHealthReportForm({...healthReportForm, notes: e.target.value})}
+                              ></textarea>
+                            </div>
+                          </div>
+                          <button type="submit" className="btn btn-premium-primary w-100 rounded-3 mt-4 fw-semibold">Save Physiological Vitals</button>
+                        </form>
+                      </div>
+                    </>
                   ) : (
                     <div className="card p-5 border-light-subtle rounded-3 shadow-sm bg-white h-100 d-flex flex-column align-items-center justify-content-center text-center text-muted">
                       <i className="bi bi-person-bounding-box fs-1 mb-3 text-muted opacity-50"></i>
@@ -742,6 +923,34 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+        </>
+      )}
+
+      {/* Department Creation Modal */}
+      {showDeptModal && (
+        <div className="modal fade show d-block animate-fade-in" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }} tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+              <div className="modal-header bg-premium-primary border-0 text-white p-3">
+                <h5 className="modal-title fw-bold"><i className="bi bi-building me-2"></i>Create Department</h5>
+                <button type="button" className="btn-close btn-close-white" onClick={() => setShowDeptModal(false)}></button>
+              </div>
+              <form onSubmit={handleAddDept} className="p-4 bg-white">
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold text-dark">Department Name</label>
+                  <input type="text" className="form-control rounded-3" value={newDept.name} onChange={e => setNewDept({...newDept, name: e.target.value})} placeholder="e.g. Cardiology" required/>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold text-dark">Description</label>
+                  <textarea className="form-control rounded-3" rows="3" value={newDept.description} onChange={e => setNewDept({...newDept, description: e.target.value})} placeholder="Describe clinical functions..." required></textarea>
+                </div>
+                <div className="d-flex gap-2 justify-content-end mt-3">
+                  <button type="button" className="btn btn-outline-secondary rounded-3" onClick={() => setShowDeptModal(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-premium-primary rounded-3">Save Department</button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -15,7 +15,7 @@ public class Insurance {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "patient_id", referencedColumnName = "id", nullable = false)
     private Patient patient;
 
@@ -30,4 +30,10 @@ public class Insurance {
 
     @Column(length = 20)
     private String status = "VERIFIED"; // VERIFIED, EXPIRED, PENDING
+
+    @Column(name = "premium")
+    private java.math.BigDecimal premium;
+
+    @Column(name = "payment_status", length = 20)
+    private String paymentStatus = "PAID"; // PAID, UNPAID
 }

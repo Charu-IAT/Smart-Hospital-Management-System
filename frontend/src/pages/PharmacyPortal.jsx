@@ -152,7 +152,7 @@ export default function PharmacyPortal() {
             <h4 className="fw-bold mb-3"><i className="bi bi-plus-circle text-primary me-2"></i>Register New Drug</h4>
             <form onSubmit={handleAddMedicine}>
               <div className="mb-3">
-                <label className="form-label small fw-semibold">Medicine Name</label>
+                <label className="form-label small fw-semibold">Medicine Name (Brand Name)</label>
                 <input type="text" className="form-control rounded-3" value={newMed.name} onChange={e => setNewMed({...newMed, name: e.target.value})} required />
               </div>
               <div className="mb-3">
@@ -179,13 +179,22 @@ export default function PharmacyPortal() {
               <div className="row">
                 <div className="col-6 mb-3">
                   <label className="form-label small fw-semibold">Qty</label>
-                  <input type="number" className="form-control rounded-3" value={newMed.stockQuantity} onChange={e => setNewMed({...newMed, stockQuantity: parseInt(e.target.value)})} required />
+                  <input type="number" className="form-control rounded-3" value={newMed.stockQuantity} onChange={e => setNewMed({...newMed, stockQuantity: parseInt(e.target.value) || 0})} required />
                 </div>
                 <div className="col-6 mb-3">
-                  <label className="form-label small fw-semibold">Price (₹)</label>
-                  <input type="number" step="0.01" className="form-control rounded-3" value={newMed.price} onChange={e => setNewMed({...newMed, price: parseFloat(e.target.value)})} required />
+                  <label className="form-label small fw-semibold">Price Per Unit (₹)</label>
+                  <input type="number" step="0.01" className="form-control rounded-3" value={newMed.price} onChange={e => setNewMed({...newMed, price: parseFloat(e.target.value) || 0})} required />
                 </div>
               </div>
+
+              {/* Real-time batch valuation preview */}
+              <div className="p-3 bg-light rounded-3 border border-light-subtle small mb-3 text-start animate-scale-up">
+                <div className="d-flex justify-content-between align-items-center fw-semibold text-dark">
+                  <span>Batch Total Valuation:</span>
+                  <span className="fs-5 text-primary font-monospace">₹{((newMed.stockQuantity || 0) * (newMed.price || 0)).toFixed(2)}</span>
+                </div>
+              </div>
+
               <button type="submit" className="btn btn-premium-secondary w-100 rounded-3">Register Drug</button>
             </form>
           </div>
