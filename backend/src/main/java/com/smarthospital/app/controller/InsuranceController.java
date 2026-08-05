@@ -5,7 +5,7 @@ import com.smarthospital.app.repository.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import java.util.Optional;
+
 
 @RestController
 @RequestMapping("/api/insurance")
@@ -15,13 +15,18 @@ public class InsuranceController {
     private final PatientRepository patientRepository;
     private final BillingRepository billingRepository;
     private final PaymentRepository paymentRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final LabReportRepository labReportRepository;
 
     public InsuranceController(InsuranceRepository insuranceRepository, PatientRepository patientRepository,
-                               BillingRepository billingRepository, PaymentRepository paymentRepository) {
+                               BillingRepository billingRepository, PaymentRepository paymentRepository,
+                               AppointmentRepository appointmentRepository, LabReportRepository labReportRepository) {
         this.insuranceRepository = insuranceRepository;
         this.patientRepository = patientRepository;
         this.billingRepository = billingRepository;
         this.paymentRepository = paymentRepository;
+        this.appointmentRepository = appointmentRepository;
+        this.labReportRepository = labReportRepository;
     }
 
     @GetMapping("/all")
@@ -98,6 +103,32 @@ public class InsuranceController {
 
         if (approve) {
             billing.setStatus("PAID");
+
+            // Update appointment payment status if linked
+            if (billing.getAppointment() != null) {
+                Appointment appointment = billing.getAppointment();
+                appointment.setPaymentStatus("PAID");
+                appointmentRepository.save(appointment);
+            }
+
+            // Update lab report payment status if linked
+            if (billing.getLabFee() != null && billing.getLabFee().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                List<LabReport> reports = labReportRepository.findByPatientId(billing.getPatient().getId());
+                for (LabReport r : reports) {
+                    r.setPaymentStatus("PAID");
+                    labReportRepository.save(r);
+                }
+            }
+
+            // Create a payment record to log this insurance settlement
+            Payment payment = new Payment();
+            payment.setBilling(billing);
+            payment.setAmountPaid(billing.getTotalAmount());
+            payment.setPaymentMethod("INSURANCE");
+            payment.setPaymentDate(java.time.LocalDateTime.now());
+            payment.setTransactionId("TXN-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            payment.setStatus("SUCCESS");
+            paymentRepository.save(payment);
         } else {
             billing.setStatus("UNPAID");
         }

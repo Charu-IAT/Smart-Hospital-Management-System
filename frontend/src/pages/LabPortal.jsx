@@ -145,6 +145,23 @@ const TEST_TEMPLATES = {
   }
 };
 
+const TEST_PRICES = {
+  "Lipid Profile": 50.00,
+  "Cardiac Biomarkers Panel": 120.00,
+  "Coagulation Profile": 45.00,
+  "Neuro-Metabolic Screen": 150.00,
+  "Cerebrospinal Fluid (CSF) Panel": 200.00,
+  "Neuro-Autoimmune Panel": 180.00,
+  "Thyroid Panel": 40.00,
+  "Diabetic Monitoring Panel": 35.00,
+  "Renal Function Panel": 55.00,
+  "Electrolyte Panel": 30.00,
+  "Urine Analysis": 20.00,
+  "Complete Blood Count (CBC)": 25.00,
+  "Anemia Workup Panel": 60.00,
+  "Liver Function Test (LFT)": 50.00
+};
+
 export default function LabPortal() {
   const [reports, setReports] = useState([]);
   const [uploadForm, setUploadForm] = useState({
@@ -369,7 +386,8 @@ Disclaimer: Please consult with your physician for clinical interpretation.
           reportId: selectedOrder ? selectedOrder.id : undefined
         }
       });
-      setMessage('Lab report finalized and saved! Laboratory test fee (₹30) issued to patient.');
+      const price = TEST_PRICES[uploadForm.testName] || 30.00;
+      setMessage(`Lab report finalized and saved! Laboratory test fee (₹${price}) issued to patient.`);
       setUploadForm({ patientId: '', testName: '', resultSummary: '', fileUrl: '' });
       setSelectedTemplate('');
       setMarkers([]);

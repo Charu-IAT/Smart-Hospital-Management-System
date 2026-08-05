@@ -37,6 +37,41 @@ public class AppointmentController {
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
 
+    private java.time.LocalTime getSlotStartTime(String slot) {
+        if (slot == null) return java.time.LocalTime.MIN;
+        String s = slot.trim().toUpperCase();
+        if (s.startsWith("09:00 AM")) return java.time.LocalTime.of(9, 0);
+        if (s.startsWith("10:00 AM")) return java.time.LocalTime.of(10, 0);
+        if (s.startsWith("11:30 AM")) return java.time.LocalTime.of(11, 30);
+        if (s.startsWith("02:00 PM")) return java.time.LocalTime.of(14, 0);
+        if (s.startsWith("03:30 PM")) return java.time.LocalTime.of(15, 30);
+        return java.time.LocalTime.MIN;
+    }
+
+    private boolean isDayAllowed(java.time.DayOfWeek day, String schedule) {
+        if (schedule == null || schedule.isEmpty()) return true;
+        String s = schedule.toLowerCase();
+        
+        if (s.contains("mon-fri")) {
+            return day != java.time.DayOfWeek.SATURDAY && day != java.time.DayOfWeek.SUNDAY;
+        }
+        if (s.contains("mon-sat")) {
+            return day != java.time.DayOfWeek.SUNDAY;
+        }
+        if (s.contains("mon-sun") || s.contains("daily") || s.contains("everyday")) {
+            return true;
+        }
+        
+        String dayName = day.name().toLowerCase();
+        String dayAbbr = dayName.substring(0, 3);
+        
+        if (s.contains(dayAbbr) || s.contains(dayName)) {
+            return true;
+        }
+        
+        return !s.contains("mon") && !s.contains("tue") && !s.contains("wed") && !s.contains("thu") && !s.contains("fri");
+    }
+
     @PostMapping("/book")
     public ResponseEntity<?> bookAppointment(@RequestBody Appointment request) {
         User user = getAuthenticatedUser();
@@ -45,6 +80,25 @@ public class AppointmentController {
 
         Doctor doctor = doctorRepository.findById(request.getDoctor().getId())
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
+
+        // Validate appointment date is not in the past
+        if (request.getAppointmentDate().isBefore(LocalDate.now())) {
+            return ResponseEntity.badRequest().body("Appointment date cannot be in the past.");
+        }
+
+        // Validate time slot is not in the past if the appointment is for today
+        if (request.getAppointmentDate().equals(LocalDate.now())) {
+            java.time.LocalTime slotStart = getSlotStartTime(request.getTimeSlot());
+            if (java.time.LocalTime.now().isAfter(slotStart)) {
+                return ResponseEntity.badRequest().body("The selected time slot is already in the past for today.");
+            }
+        }
+
+        // Validate doctor availability schedule day of week
+        java.time.DayOfWeek dayOfWeek = request.getAppointmentDate().getDayOfWeek();
+        if (!isDayAllowed(dayOfWeek, doctor.getSchedule())) {
+            return ResponseEntity.badRequest().body("Doctor " + doctor.getName() + " is not scheduled to work on " + dayOfWeek + ". Doctor's schedule: " + doctor.getSchedule());
+        }
 
         // Check if doctor is already booked for this date and time slot
         List<Appointment> doctorAppointments = appointmentRepository.findByDoctorId(doctor.getId());

@@ -89,6 +89,16 @@ export default function PatientDashboard() {
   const [insFilterProvider, setInsFilterProvider] = useState('');
   const [customAlert, setCustomAlert] = useState(null);
   const [upiVerifyState, setUpiVerifyState] = useState('');
+  const [billUpiVerifyState, setBillUpiVerifyState] = useState('');
+  const [billUpiTxnId, setBillUpiTxnId] = useState('');
+  const [availableSlots, setAvailableSlots] = useState([
+    "09:00 AM - 09:30 AM",
+    "10:00 AM - 10:30 AM",
+    "11:30 AM - 12:00 PM",
+    "02:00 PM - 02:30 PM",
+    "03:30 PM - 04:00 PM"
+  ]);
+  const [slotError, setSlotError] = useState('');
   const showAlert = (message, type = 'error') => {
     setCustomAlert({ type, message });
   };
@@ -107,6 +117,104 @@ export default function PatientDashboard() {
     fetchDoctors();
     fetchDepartments();
   }, []);
+
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      const ALL_TIME_SLOTS = [
+        "09:00 AM - 09:30 AM",
+        "10:00 AM - 10:30 AM",
+        "11:30 AM - 12:00 PM",
+        "02:00 PM - 02:30 PM",
+        "03:30 PM - 04:00 PM"
+      ];
+
+      if (!bookingForm.doctorId || !bookingForm.appointmentDate) {
+        setAvailableSlots(ALL_TIME_SLOTS);
+        setSlotError('');
+        return;
+      }
+
+      // 1. Day of week schedule check
+      const selectedDoc = doctors.find(d => d.id === parseInt(bookingForm.doctorId));
+      if (selectedDoc) {
+        const [year, month, dayStr] = bookingForm.appointmentDate.split('-');
+        const dateObj = new Date(year, month - 1, dayStr);
+        const day = dateObj.getDay(); // 0 is Sunday, 1 is Monday, ..., 6 is Saturday
+        const schedule = (selectedDoc.schedule || '').toLowerCase();
+        let isDayValid = true;
+        let dayName = '';
+
+        if (schedule.includes('mon-fri')) {
+          isDayValid = (day >= 1 && day <= 5);
+          dayName = 'Monday to Friday';
+        } else if (schedule.includes('mon-sat')) {
+          isDayValid = (day >= 1 && day <= 6);
+          dayName = 'Monday to Saturday';
+        }
+
+        if (!isDayValid) {
+          setSlotError(`Doctor ${selectedDoc.name} is only available ${dayName} (Schedule: ${selectedDoc.schedule}).`);
+          setAvailableSlots([]);
+          setBookingForm(prev => ({ ...prev, timeSlot: '' }));
+          return;
+        } else {
+          setSlotError('');
+        }
+      }
+
+      try {
+        const res = await api.get(`/api/appointments/booked-slots`, {
+          params: {
+            doctorId: bookingForm.doctorId,
+            date: bookingForm.appointmentDate
+          }
+        });
+        const booked = res.data;
+
+        // Calculate available slots
+        const isToday = bookingForm.appointmentDate === new Date().toISOString().split('T')[0];
+
+        const filtered = ALL_TIME_SLOTS.filter(slot => {
+          if (booked.includes(slot)) return false;
+
+          if (isToday) {
+            const now = new Date();
+            const currentHours = now.getHours();
+            const currentMinutes = now.getMinutes();
+            let slotHour = 0;
+            let slotMin = 0;
+
+            if (slot.startsWith("09:00 AM")) { slotHour = 9; slotMin = 0; }
+            else if (slot.startsWith("10:00 AM")) { slotHour = 10; slotMin = 0; }
+            else if (slot.startsWith("11:30 AM")) { slotHour = 11; slotMin = 30; }
+            else if (slot.startsWith("02:00 PM")) { slotHour = 14; slotMin = 0; }
+            else if (slot.startsWith("03:30 PM")) { slotHour = 15; slotMin = 30; }
+
+            if (currentHours > slotHour || (currentHours === slotHour && currentMinutes > slotMin)) {
+              return false;
+            }
+          }
+          return true;
+        });
+
+        setAvailableSlots(filtered);
+
+        if (filtered.length > 0) {
+          if (!filtered.includes(bookingForm.timeSlot)) {
+            setBookingForm(prev => ({ ...prev, timeSlot: filtered[0] }));
+          }
+        } else {
+          setBookingForm(prev => ({ ...prev, timeSlot: '' }));
+          setSlotError('No time slots available for this doctor on the selected date. Please choose another date or doctor.');
+        }
+
+      } catch (err) {
+        console.error("Error fetching booked slots", err);
+      }
+    };
+
+    fetchBookedSlots();
+  }, [bookingForm.doctorId, bookingForm.appointmentDate, doctors]);
 
   const fetchDepartments = async () => {
     try {
@@ -201,6 +309,22 @@ export default function PatientDashboard() {
     e.preventDefault();
     if (!bookingForm.doctorId || !bookingForm.appointmentDate) {
       showAlert("Please select a doctor and date");
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (bookingForm.appointmentDate < todayStr) {
+      showAlert("Appointment date cannot be in the past.");
+      return;
+    }
+
+    if (slotError) {
+      showAlert(slotError);
+      return;
+    }
+
+    if (!bookingForm.timeSlot) {
+      showAlert("Please select a valid preferred time slot.");
       return;
     }
 
@@ -552,17 +676,33 @@ export default function PatientDashboard() {
                 </div>
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Appointment Date</label>
-                  <input type="date" className="form-control rounded-3" value={bookingForm.appointmentDate} onChange={e => setBookingForm({...bookingForm, appointmentDate: e.target.value})} required />
+                  <input 
+                    type="date" 
+                    className="form-control rounded-3" 
+                    value={bookingForm.appointmentDate} 
+                    onChange={e => setBookingForm({...bookingForm, appointmentDate: e.target.value})} 
+                    min={new Date().toISOString().split('T')[0]}
+                    required 
+                  />
                 </div>
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Preferred Time Slot</label>
-                  <select className="form-select rounded-3" value={bookingForm.timeSlot} onChange={e => setBookingForm({...bookingForm, timeSlot: e.target.value})}>
-                    <option value="09:00 AM - 09:30 AM">09:00 AM - 09:30 AM</option>
-                    <option value="10:00 AM - 10:30 AM">10:00 AM - 10:30 AM</option>
-                    <option value="11:30 AM - 12:00 PM">11:30 AM - 12:00 PM</option>
-                    <option value="02:00 PM - 02:30 PM">02:00 PM - 02:30 PM</option>
-                    <option value="03:30 PM - 04:00 PM">03:30 PM - 04:00 PM</option>
-                  </select>
+                  {slotError ? (
+                    <div className="alert alert-warning py-2 px-3 rounded-3 small mb-0 border border-warning-subtle animate-scale-up">
+                      <i className="bi bi-exclamation-triangle-fill me-1"></i> {slotError}
+                    </div>
+                  ) : (
+                    <select 
+                      className="form-select rounded-3" 
+                      value={bookingForm.timeSlot} 
+                      onChange={e => setBookingForm({...bookingForm, timeSlot: e.target.value})}
+                      required
+                    >
+                      {availableSlots.map(slot => (
+                        <option key={slot} value={slot}>{slot}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Consultation Mode</label>
@@ -801,76 +941,164 @@ export default function PatientDashboard() {
                     <div className="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
                       <div className="modal-header bg-premium-primary text-white border-0 p-3">
                         <h5 className="modal-title fw-bold"><i className="bi bi-credit-card me-2"></i>Settle Hospital Invoice</h5>
-                        <button type="button" className="btn-close btn-close-white" onClick={() => setPayingBill(null)}></button>
+                        <button type="button" className="btn-close btn-close-white" onClick={() => { setPayingBill(null); setBillUpiVerifyState(''); setBillUpiTxnId(''); }}></button>
                       </div>
-                      <div className="modal-body p-4 bg-light bg-opacity-50">
-                        <div className="d-flex justify-content-between align-items-center mb-4 p-3 bg-white border border-light-subtle rounded-3">
-                          <div>
-                            <span className="text-muted small block">Total Amount Due</span>
-                            <span className="fw-bold text-dark block">INV-00{payingBill.id}</span>
-                          </div>
-                          <span className="fs-3 fw-bold text-primary">₹{payingBill.totalAmount?.toFixed(2)}</span>
-                        </div>
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        setIsPaying(true);
+                        
+                        if (paymentMethod === 'UPI') {
+                          setBillUpiVerifyState('verifying');
+                          await new Promise(resolve => setTimeout(resolve, 1500));
+                          setBillUpiVerifyState('success');
+                          await new Promise(resolve => setTimeout(resolve, 1000));
+                        } else {
+                          // Card simulation
+                          setBillUpiVerifyState('verifying_card');
+                          await new Promise(resolve => setTimeout(resolve, 1500));
+                          setBillUpiVerifyState('success_card');
+                          await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
 
-                        {paymentMethod === 'UPI' ? (
-                          /* UPI QR Code Interface */
-                          <div className="d-flex flex-column align-items-center mb-3 text-center">
-                            <div className="p-2 bg-white rounded-3 shadow-sm border border-light-subtle mb-3" style={{ width: '180px', height: '180px' }}>
-                              <img 
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=164x164&data=${encodeURIComponent(`upi://pay?pa=9524980991@upi&pn=Charumathi Dhanasekaran&am=${payingBill.totalAmount}&cu=INR`)}`} 
-                                className="img-fluid rounded-2" 
-                                alt="UPI QR Code" 
-                              />
-                            </div>
-                            <span className="badge bg-success bg-opacity-10 text-success border border-success-subtle mb-2 px-2.5 py-1">UPI Merchant Account</span>
-                            <h6 className="fw-bold text-dark mb-1">Charumathi Dhanasekaran</h6>
-                            <p className="small text-muted mb-0">Phone: 9524980991</p>
-                            <p className="small text-muted mb-0">UPI ID: 9524980991@upi</p>
-                            <p className="small text-muted mt-2">Scan to pay with any UPI app</p>
-                          </div>
-                        ) : (
-                          /* Card Inputs Interface */
-                          <div>
-                            <div className="mb-3">
-                              <label className="form-label small fw-semibold text-dark">Cardholder Name</label>
-                              <input type="text" className="form-control rounded-3" placeholder="John Doe" required />
-                            </div>
-                            <div className="mb-3">
-                              <label className="form-label small fw-semibold text-dark">Card Number</label>
-                              <input type="text" className="form-control rounded-3" placeholder="XXXX XXXX XXXX XXXX" maxLength="19" required />
-                            </div>
-                            <div className="row">
-                              <div className="col-6 mb-3">
-                                <label className="form-label small fw-semibold text-dark">Expiry Date</label>
-                                <input type="text" className="form-control rounded-3" placeholder="MM/YY" maxLength="5" required />
+                        try {
+                          await api.post(`/api/billing/${payingBill.id}/pay?paymentMethod=${paymentMethod}`);
+                          setPaymentSuccess(true);
+                        } catch (err) {
+                          showAlert(err.response?.data || 'Error processing payment');
+                        } finally {
+                          setIsPaying(false);
+                          setBillUpiVerifyState('');
+                          setBillUpiTxnId('');
+                        }
+                      }}>
+                        <div className="modal-body p-4 bg-light bg-opacity-50">
+                          {billUpiVerifyState === 'verifying' && (
+                            <div className="d-flex flex-column align-items-center justify-content-center py-5 text-center animate-scale-up">
+                              <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
+                                <span className="visually-hidden">Verifying...</span>
                               </div>
-                              <div className="col-6 mb-3">
-                                <label className="form-label small fw-semibold text-dark">CVV Code</label>
-                                <input type="password" className="form-control rounded-3" placeholder="***" maxLength="3" required />
-                              </div>
+                              <h5 className="fw-bold text-dark mb-1">Verifying Transaction Ref...</h5>
+                              <p className="text-muted small">Checking merchant account for UPI payment transfer status</p>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        <div className="d-flex gap-2 justify-content-end mt-4">
-                          <button type="button" className="btn btn-outline-secondary rounded-3 px-4" onClick={() => setPayingBill(null)}>Cancel</button>
-                          <button
-                            type="button"
-                            className="btn btn-premium-primary rounded-3 px-4"
-                            onClick={() => handlePayBill(payingBill.id, paymentMethod)}
-                            disabled={isPaying}
-                          >
-                            {isPaying ? (
-                              <>
-                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                Processing...
-                              </>
-                            ) : (
-                              `Confirm Payment`
-                            )}
-                          </button>
+                          {billUpiVerifyState === 'verifying_card' && (
+                            <div className="d-flex flex-column align-items-center justify-content-center py-5 text-center animate-scale-up">
+                              <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
+                                <span className="visually-hidden">Authorizing...</span>
+                              </div>
+                              <h5 className="fw-bold text-dark mb-1">Authorizing Card...</h5>
+                              <p className="text-muted small">Contacting issuing bank secure gateway</p>
+                            </div>
+                          )}
+
+                          {billUpiVerifyState === 'success' && (
+                            <div className="d-flex flex-column align-items-center justify-content-center py-5 text-center animate-scale-up">
+                              <div className="mb-3 d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success rounded-circle" style={{ width: '70px', height: '70px' }}>
+                                <i className="bi bi-check2-circle text-success" style={{ fontSize: '2.5rem' }}></i>
+                              </div>
+                              <h5 className="fw-bold text-success mb-1">UPI Payment Confirmed!</h5>
+                              <p className="text-muted small">Settle request submitted</p>
+                            </div>
+                          )}
+
+                          {billUpiVerifyState === 'success_card' && (
+                            <div className="d-flex flex-column align-items-center justify-content-center py-5 text-center animate-scale-up">
+                              <div className="mb-3 d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success rounded-circle" style={{ width: '70px', height: '70px' }}>
+                                <i className="bi bi-check2-circle text-success" style={{ fontSize: '2.5rem' }}></i>
+                              </div>
+                              <h5 className="fw-bold text-success mb-1">Card Payment Authorized!</h5>
+                              <p className="text-muted small">Settle request submitted</p>
+                            </div>
+                          )}
+
+                          {billUpiVerifyState === '' && (
+                            <>
+                              <div className="d-flex justify-content-between align-items-center mb-4 p-3 bg-white border border-light-subtle rounded-3">
+                                <div>
+                                  <span className="text-muted small block">Total Amount Due</span>
+                                  <span className="fw-bold text-dark block">INV-00{payingBill.id}</span>
+                                </div>
+                                <span className="fs-3 fw-bold text-primary">₹{payingBill.totalAmount?.toFixed(2)}</span>
+                              </div>
+
+                              {paymentMethod === 'UPI' ? (
+                                /* UPI QR Code Interface */
+                                <div className="d-flex flex-column align-items-center mb-3 text-center">
+                                  <div className="p-2 bg-white rounded-3 shadow-sm border border-light-subtle mb-3" style={{ width: '180px', height: '180px' }}>
+                                    <img 
+                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=164x164&data=${encodeURIComponent(`upi://pay?pa=9524980991@upi&pn=Charumathi Dhanasekaran&am=${payingBill.totalAmount}&cu=INR`)}`} 
+                                      className="img-fluid rounded-2" 
+                                      alt="UPI QR Code" 
+                                    />
+                                  </div>
+                                  <span className="badge bg-success bg-opacity-10 text-success border border-success-subtle mb-2 px-2.5 py-1">UPI Merchant Account</span>
+                                  <h6 className="fw-bold text-dark mb-1">Charumathi Dhanasekaran</h6>
+                                  <p className="small text-muted mb-0">Phone: 9524980991</p>
+                                  <p className="small text-muted mb-0">UPI ID: 9524980991@upi</p>
+                                  <p className="small text-muted mt-2 mb-3">Scan to pay with any UPI app</p>
+                                  
+                                  <div className="mb-1 w-100 text-start">
+                                    <label className="form-label small fw-semibold text-dark">Enter UPI Transaction ID / Ref No.</label>
+                                    <input 
+                                      type="text" 
+                                      className="form-control rounded-3 text-center font-monospace" 
+                                      placeholder="12-digit reference number" 
+                                      maxLength="12" 
+                                      minLength="12" 
+                                      pattern="\d{12}" 
+                                      title="UPI transaction reference number must be exactly 12 digits" 
+                                      value={billUpiTxnId}
+                                      onChange={e => setBillUpiTxnId(e.target.value)}
+                                      required 
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                /* Card Inputs Interface */
+                                <div>
+                                  <div className="mb-3">
+                                    <label className="form-label small fw-semibold text-dark">Cardholder Name</label>
+                                    <input type="text" className="form-control rounded-3" placeholder="John Doe" required />
+                                  </div>
+                                  <div className="mb-3">
+                                    <label className="form-label small fw-semibold text-dark">Card Number</label>
+                                    <input type="text" className="form-control rounded-3" placeholder="XXXX XXXX XXXX XXXX" maxLength="19" required />
+                                  </div>
+                                  <div className="row">
+                                    <div className="col-6 mb-3">
+                                      <label className="form-label small fw-semibold text-dark">Expiry Date</label>
+                                      <input type="text" className="form-control rounded-3" placeholder="MM/YY" maxLength="5" required />
+                                    </div>
+                                    <div className="col-6 mb-3">
+                                      <label className="form-label small fw-semibold text-dark">CVV Code</label>
+                                      <input type="password" className="form-control rounded-3" placeholder="***" maxLength="3" required />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="d-flex gap-2 justify-content-end mt-4">
+                                <button type="button" className="btn btn-outline-secondary rounded-3 px-4" onClick={() => { setPayingBill(null); setBillUpiTxnId(''); }}>Cancel</button>
+                                <button
+                                  type="submit"
+                                  className="btn btn-premium-primary rounded-3 px-4"
+                                  disabled={isPaying}
+                                >
+                                  {isPaying ? (
+                                    <>
+                                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                      Processing...
+                                    </>
+                                  ) : (
+                                    `Confirm Payment`
+                                  )}
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
-                      </div>
+                      </form>
                     </div>
                   </div>
                 </div>

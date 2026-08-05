@@ -58,6 +58,8 @@ public class LabController {
             }
         }
 
+        boolean isNewReport = (report == null);
+
         if (report == null) {
             report = new LabReport();
             report.setPatient(patient);
@@ -71,6 +73,32 @@ public class LabController {
         report.setStatus("COMPLETED");
 
         LabReport savedReport = labReportRepository.save(report);
+
+        if (isNewReport) {
+            double testPrice = getTestPriceByName(testName);
+            java.util.List<Billing> patientBills = billingRepository.findByPatientId(patient.getId());
+            Billing billing = patientBills.stream()
+                    .filter(b -> b.getStatus().equals("UNPAID"))
+                    .reduce((first, second) -> second)
+                    .orElse(null);
+
+            if (billing != null) {
+                BigDecimal currentLabFee = billing.getLabFee() != null ? billing.getLabFee() : BigDecimal.ZERO;
+                billing.setLabFee(currentLabFee.add(BigDecimal.valueOf(testPrice)));
+                BigDecimal consultation = billing.getConsultationFee() != null ? billing.getConsultationFee() : BigDecimal.ZERO;
+                BigDecimal pharmacy = billing.getPharmacyFee() != null ? billing.getPharmacyFee() : BigDecimal.ZERO;
+                billing.setTotalAmount(consultation.add(billing.getLabFee()).add(pharmacy));
+                billingRepository.save(billing);
+            } else {
+                billing = new Billing();
+                billing.setPatient(patient);
+                billing.setLabFee(BigDecimal.valueOf(testPrice));
+                billing.setTotalAmount(BigDecimal.valueOf(testPrice));
+                billing.setStatus("UNPAID");
+                billing.setBillingDate(LocalDate.now());
+                billingRepository.save(billing);
+            }
+        }
 
         return ResponseEntity.ok(savedReport);
     }
@@ -97,7 +125,7 @@ public class LabController {
 
         LabReport savedReport = labReportRepository.save(report);
 
-        double testPrice = price != null ? price : 30.00;
+        double testPrice = price != null ? price : getTestPriceByName(testName);
 
         // Consolidate laboratory fee into patient's existing unpaid invoice
         List<Billing> patientBills = billingRepository.findByPatientId(patient.getId());
@@ -132,5 +160,42 @@ public class LabController {
                 .orElseThrow(() -> new RuntimeException("Lab report not found"));
         report.setStatus("SAMPLE_COLLECTED");
         return ResponseEntity.ok(labReportRepository.save(report));
+    }
+
+    private double getTestPriceByName(String testName) {
+        if (testName == null) {
+            return 30.00;
+        }
+        String name = testName.trim();
+        if (name.equalsIgnoreCase("Lipid Profile")) {
+            return 50.00;
+        } else if (name.equalsIgnoreCase("Cardiac Biomarkers Panel")) {
+            return 120.00;
+        } else if (name.equalsIgnoreCase("Coagulation Profile")) {
+            return 45.00;
+        } else if (name.equalsIgnoreCase("Neuro-Metabolic Screen")) {
+            return 150.00;
+        } else if (name.equalsIgnoreCase("Cerebrospinal Fluid (CSF) Panel")) {
+            return 200.00;
+        } else if (name.equalsIgnoreCase("Neuro-Autoimmune Panel")) {
+            return 180.00;
+        } else if (name.equalsIgnoreCase("Thyroid Panel")) {
+            return 40.00;
+        } else if (name.equalsIgnoreCase("Diabetic Monitoring Panel")) {
+            return 35.00;
+        } else if (name.equalsIgnoreCase("Renal Function Panel")) {
+            return 55.00;
+        } else if (name.equalsIgnoreCase("Electrolyte Panel")) {
+            return 30.00;
+        } else if (name.equalsIgnoreCase("Urine Analysis")) {
+            return 20.00;
+        } else if (name.equalsIgnoreCase("Complete Blood Count (CBC)")) {
+            return 25.00;
+        } else if (name.equalsIgnoreCase("Anemia Workup Panel")) {
+            return 60.00;
+        } else if (name.equalsIgnoreCase("Liver Function Test (LFT)")) {
+            return 50.00;
+        }
+        return 30.00; // Default fallback
     }
 }
