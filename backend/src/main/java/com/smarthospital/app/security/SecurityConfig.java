@@ -15,6 +15,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 
 @Configuration
 @EnableWebSecurity
@@ -68,5 +73,23 @@ public class SecurityConfig {
                         .allowedHeaders("*");
             }
         };
+    }
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        final String securitySchemeName = "bearerAuth";
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Smart Hospital Management System API")
+                        .version("1.0")
+                        .description("API documentation for Smart Hospital Management System"))
+                .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
+                .components(new Components()
+                        .addSecuritySchemes(securitySchemeName,
+                                new SecurityScheme()
+                                        .name(securitySchemeName)
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")));
     }
 }

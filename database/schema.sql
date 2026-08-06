@@ -6,7 +6,7 @@ USE smart_hospital_db;
 -- 1. Departments Table
 CREATE TABLE IF NOT EXISTS departments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT
 );
 
@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     role VARCHAR(30) NOT NULL,
+    phone VARCHAR(20),
     date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

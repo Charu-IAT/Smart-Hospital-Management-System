@@ -378,3 +378,61 @@ body {
   size: A4;
   margin: 6mm 10mm 6mm 10mm;
 }
+
+/* Custom Toast Notifications */
+.custom-toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.custom-toast {
+  pointer-events: auto;
+  min-width: 320px;
+  max-width: 400px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: all 0.3s ease;
+}
+
+.custom-toast.toast-error {
+  border-left: 5px solid #dc2626;
+  background: rgba(254, 242, 242, 0.95);
+}
+
+.custom-toast.toast-success {
+  border-left: 5px solid #16a34a;
+  background: rgba(240, 253, 244, 0.95);
+}
+
+.custom-toast-message {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  flex: 1;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

@@ -35,7 +35,17 @@ export default function Login({ onLoginSuccess }) {
   const [departments, setDepartments] = useState([]);
   const [showDeptModal, setShowDeptModal] = useState(false);
   const [newDept, setNewDept] = useState({ name: '', description: '' });
+  const [toast, setToast] = useState(null);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   React.useEffect(() => {
     fetchDepartments();
@@ -62,9 +72,13 @@ export default function Login({ onLoginSuccess }) {
     try {
       await api.post('/api/admin/departments', newDept);
       setNewDept({ name: '', description: '' });
+      setToast({ message: 'Department created successfully!', type: 'success' });
       setShowDeptModal(false);
       fetchDepartments();
-    } catch (err) { alert('Error adding department'); }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || 'Error adding department';
+      setToast({ message: errorMsg, type: 'error' });
+    }
   };
 
   const handleInputChange = (e) => {
@@ -600,6 +614,16 @@ export default function Login({ onLoginSuccess }) {
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Custom Toast Notifications */}
+      {toast && (
+        <div className="custom-toast-container">
+          <div className={`custom-toast toast-${toast.type}`}>
+            <i className={`bi ${toast.type === 'error' ? 'bi-exclamation-circle-fill text-danger' : 'bi-check-circle-fill text-success'} fs-5`}></i>
+            <div className="custom-toast-message">{toast.message}</div>
+            <button type="button" className="btn-close" style={{ fontSize: '0.75rem' }} onClick={() => setToast(null)}></button>
           </div>
         </div>
       )}

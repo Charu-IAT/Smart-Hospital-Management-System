@@ -64,14 +64,12 @@ public class AdminController {
 
     @PostMapping("/inventory")
     public ResponseEntity<Inventory> addInventoryItem(@RequestBody Inventory item) {
-        if (item.getStatus() == null || item.getStatus().isEmpty()) {
-            if (item.getQuantity() <= item.getThreshold()) {
-                item.setStatus("LOW_STOCK");
-            } else if (item.getQuantity() == 0) {
-                item.setStatus("OUT_OF_STOCK");
-            } else {
-                item.setStatus("IN_STOCK");
-            }
+        if (item.getQuantity() == null || item.getQuantity() == 0) {
+            item.setStatus("OUT_OF_STOCK");
+        } else if (item.getQuantity() <= item.getThreshold()) {
+            item.setStatus("LOW_STOCK");
+        } else {
+            item.setStatus("IN_STOCK");
         }
         return ResponseEntity.ok(inventoryRepository.save(item));
     }
@@ -83,7 +81,9 @@ public class AdminController {
         
         item.setQuantity(item.getQuantity() + quantity);
         
-        if (item.getQuantity() <= item.getThreshold()) {
+        if (item.getQuantity() == null || item.getQuantity() == 0) {
+            item.setStatus("OUT_OF_STOCK");
+        } else if (item.getQuantity() <= item.getThreshold()) {
             item.setStatus("LOW_STOCK");
         } else {
             item.setStatus("IN_STOCK");
@@ -97,7 +97,15 @@ public class AdminController {
     }
 
     @PostMapping("/departments")
-    public ResponseEntity<Department> createDepartment(@RequestBody Department dept) {
+    public ResponseEntity<?> createDepartment(@RequestBody Department dept) {
+        if (dept.getName() == null || dept.getName().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", "Department name cannot be empty"));
+        }
+        String normalizedName = dept.getName().trim();
+        if (departmentRepository.existsByNameIgnoreCase(normalizedName)) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", "already have this deparment"));
+        }
+        dept.setName(normalizedName);
         return ResponseEntity.ok(departmentRepository.save(dept));
     }
 }

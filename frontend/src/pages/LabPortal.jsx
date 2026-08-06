@@ -13,6 +13,7 @@ const TEST_TEMPLATES = {
       { name: 'Hematocrit (HCT)', val: '', unit: '%', min: 35.0, max: 50.0 },
       { name: 'Platelets', val: '', unit: 'x10³/µL', min: 150, max: 450 }
     ]
+    
   },
   lipid: {
     name: 'Lipid Profile',

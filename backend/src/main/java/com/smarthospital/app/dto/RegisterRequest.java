@@ -16,6 +16,8 @@ public class RegisterRequest {
     private String bloodGroup;
     private String address;
     private String phone;
+    private String allergies;
+    private String medicalHistory;
 
     // Doctor specific fields
     private String specialization;

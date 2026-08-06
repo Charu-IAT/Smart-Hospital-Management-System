@@ -54,10 +54,25 @@ public class PatientController {
         current.setBloodGroup(updatedPatient.getBloodGroup());
         current.setPhone(updatedPatient.getPhone());
         current.setAddress(updatedPatient.getAddress());
-        current.setAllergies(updatedPatient.getAllergies());
-        current.setMedicalHistory(updatedPatient.getMedicalHistory());
+        current.setAllergies(updatedPatient.getAllergies() != null && !updatedPatient.getAllergies().trim().isEmpty() ? updatedPatient.getAllergies() : "None");
+        current.setMedicalHistory(updatedPatient.getMedicalHistory() != null && !updatedPatient.getMedicalHistory().trim().isEmpty() ? updatedPatient.getMedicalHistory() : "None");
         
         return ResponseEntity.ok(patientRepository.save(current));
+    }
+
+    @PutMapping("/{id}/clinical-info")
+    public ResponseEntity<Patient> updateClinicalInfo(@PathVariable Long id, 
+                                                      @RequestParam(required = false) String allergies, 
+                                                      @RequestParam(required = false) String medicalHistory) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+        if (allergies != null) {
+            patient.setAllergies(allergies.trim().isEmpty() ? "None" : allergies);
+        }
+        if (medicalHistory != null) {
+            patient.setMedicalHistory(medicalHistory.trim().isEmpty() ? "None" : medicalHistory);
+        }
+        return ResponseEntity.ok(patientRepository.save(patient));
     }
 
     @GetMapping("/{id}/prescriptions")

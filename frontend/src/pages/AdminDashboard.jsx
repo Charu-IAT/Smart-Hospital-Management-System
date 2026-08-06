@@ -93,9 +93,20 @@ export default function AdminDashboard() {
   // Form states
   const [newDept, setNewDept] = useState({ name: '', description: '' });
   const [showDeptModal, setShowDeptModal] = useState(false);
-  const [newInv, setNewInv] = useState({ itemName: '', category: '', quantity: 10, threshold: 5, status: 'IN_STOCK' });
+  const [newInv, setNewInv] = useState({ itemName: '', category: '', quantity: 10, threshold: 5 });
   const [restockQty, setRestockQty] = useState({});
   const [message, setMessage] = useState('');
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   const [regForm, setRegForm] = useState({
     username: '',
     password: '',
@@ -110,6 +121,8 @@ export default function AdminDashboard() {
     specialization: '',
     departmentId: '',
     schedule: 'Mon-Fri: 9AM-5PM',
+    allergies: '',
+    medicalHistory: '',
   });
 
   useEffect(() => {
@@ -177,17 +190,21 @@ export default function AdminDashboard() {
     try {
       await api.post('/api/admin/departments', newDept);
       setNewDept({ name: '', description: '' });
-      setMessage('Department created successfully!');
+      setToast({ message: 'Department created successfully!', type: 'success' });
       setShowDeptModal(false);
       fetchDepartments();
-    } catch (err) { setMessage('Error creating department'); }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || 'Error creating department';
+      setToast({ message: errorMsg, type: 'error' });
+      setMessage(errorMsg);
+    }
   };
 
   const handleAddInventory = async (e) => {
     e.preventDefault();
     try {
       await api.post('/api/admin/inventory', newInv);
-      setNewInv({ itemName: '', category: '', quantity: 10, threshold: 5, status: 'IN_STOCK' });
+      setNewInv({ itemName: '', category: '', quantity: 10, threshold: 5 });
       setMessage('Inventory item added successfully!');
       fetchInventory();
       fetchStats();
@@ -211,7 +228,7 @@ export default function AdminDashboard() {
     try {
       const payload = {
         username: regForm.username,
-        password: regForm.password,
+        password: regForm.role === 'ROLE_PATIENT' ? '' : regForm.password,
         email: regForm.email,
         role: regForm.role,
         name: regForm.name,
@@ -223,6 +240,8 @@ export default function AdminDashboard() {
         specialization: regForm.specialization,
         departmentId: regForm.departmentId ? parseInt(regForm.departmentId) : null,
         schedule: regForm.schedule,
+        allergies: regForm.allergies,
+        medicalHistory: regForm.medicalHistory,
       };
       await api.post('/api/auth/register', payload);
       setMessage(`User ${regForm.username} successfully registered with role ${regForm.role.replace('ROLE_', '')}!`);
@@ -240,8 +259,11 @@ export default function AdminDashboard() {
         specialization: '',
         departmentId: '',
         schedule: 'Mon-Fri: 9AM-5PM',
+        allergies: '',
+        medicalHistory: '',
       });
       fetchDoctors();
+      fetchPatients();
       fetchStats();
     } catch (err) {
       setMessage(err.response?.data || 'Error registering user');
@@ -455,7 +477,6 @@ export default function AdminDashboard() {
                           >
                             {pat.name}
                           </span>
-                          <span className="text-muted small block">User: {pat.user?.username || 'N/A'}</span>
                         </td>
                         <td>{pat.age || 'N/A'} yrs / {pat.gender || 'N/A'}</td>
                         <td><span className="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">{pat.bloodGroup || 'O+'}</span></td>
@@ -464,8 +485,8 @@ export default function AdminDashboard() {
                           <div className="small text-muted"><i className="bi bi-geo-alt me-1"></i>{pat.address || 'N/A'}</div>
                         </td>
                         <td>
-                          <div className="small"><strong className="text-dark">Allergies:</strong> {pat.allergies || 'None'}</div>
-                          <div className="small"><strong className="text-dark">History:</strong> {pat.medicalHistory || 'None'}</div>
+                          <div className="small"><strong className="text-dark">Allergies:</strong> {(pat.allergies && pat.allergies.trim()) ? pat.allergies : 'None'}</div>
+                          <div className="small"><strong className="text-dark">History:</strong> {(pat.medicalHistory && pat.medicalHistory.trim()) ? pat.medicalHistory : 'None'}</div>
                         </td>
                         <td>
                           <button 
@@ -578,14 +599,6 @@ export default function AdminDashboard() {
                   <label className="form-label small fw-semibold">Low Stock Threshold</label>
                   <input type="number" className="form-control rounded-3" value={newInv.threshold} onChange={e => setNewInv({...newInv, threshold: parseInt(e.target.value)})} required/>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label small fw-semibold">Status</label>
-                  <select className="form-select rounded-3" value={newInv.status} onChange={e => setNewInv({...newInv, status: e.target.value})}>
-                    <option value="IN_STOCK">IN_STOCK</option>
-                    <option value="LOW_STOCK">LOW_STOCK</option>
-                    <option value="OUT_OF_STOCK">OUT_OF_STOCK</option>
-                  </select>
-                </div>
                 <button type="submit" className="btn btn-premium-primary w-100 rounded-3">Add Stock Item</button>
               </form>
             </div>
@@ -638,14 +651,16 @@ export default function AdminDashboard() {
           <h4 className="fw-bold mb-4 text-center"><i className="bi bi-person-plus text-primary me-2"></i>Register Hospital User (Admin Only)</h4>
           <form onSubmit={handleRegisterUser}>
             <div className="row">
-              <div className="col-md-6 mb-3">
+              <div className={regForm.role === 'ROLE_PATIENT' ? "col-12 mb-3" : "col-md-6 mb-3"}>
                 <label className="form-label small fw-semibold">Username</label>
                 <input type="text" className="form-control rounded-3" value={regForm.username} onChange={e => setRegForm({...regForm, username: e.target.value})} required />
               </div>
-              <div className="col-md-6 mb-3">
-                <label className="form-label small fw-semibold">Password</label>
-                <input type="password" className="form-control rounded-3" value={regForm.password} onChange={e => setRegForm({...regForm, password: e.target.value})} required />
-              </div>
+              {regForm.role !== 'ROLE_PATIENT' && (
+                <div className="col-md-6 mb-3">
+                  <label className="form-label small fw-semibold">Password</label>
+                  <input type="password" className="form-control rounded-3" value={regForm.password} onChange={e => setRegForm({...regForm, password: e.target.value})} required />
+                </div>
+              )}
               <div className="col-md-6 mb-3">
                 <label className="form-label small fw-semibold">Email</label>
                 <input type="email" className="form-control rounded-3" value={regForm.email} onChange={e => setRegForm({...regForm, email: e.target.value})} required />
@@ -666,6 +681,11 @@ export default function AdminDashboard() {
                 <input type="text" className="form-control rounded-3" value={regForm.name} onChange={e => setRegForm({...regForm, name: e.target.value})} required />
               </div>
 
+              <div className="col-12 mb-3">
+                <label className="form-label small fw-semibold">Mobile Number (For OTP Verification)</label>
+                <input type="text" className="form-control rounded-3" value={regForm.phone} onChange={e => setRegForm({...regForm, phone: e.target.value})} placeholder="e.g. 9876543210" required />
+              </div>
+
               {regForm.role === 'ROLE_PATIENT' && (
                 <>
                   <div className="col-md-4 mb-3">
@@ -684,13 +704,17 @@ export default function AdminDashboard() {
                     <label className="form-label small fw-semibold">Blood Group</label>
                     <input type="text" className="form-control rounded-3" value={regForm.bloodGroup} onChange={e => setRegForm({...regForm, bloodGroup: e.target.value})} />
                   </div>
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label small fw-semibold">Phone</label>
-                    <input type="text" className="form-control rounded-3" value={regForm.phone} onChange={e => setRegForm({...regForm, phone: e.target.value})} />
-                  </div>
                   <div className="col-12 mb-3">
                     <label className="form-label small fw-semibold">Address</label>
                     <textarea className="form-control rounded-3" rows="2" value={regForm.address} onChange={e => setRegForm({...regForm, address: e.target.value})}></textarea>
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label small fw-semibold">Allergies</label>
+                    <input type="text" className="form-control rounded-3" placeholder="e.g. Penicillin, Peanuts (or blank)" value={regForm.allergies} onChange={e => setRegForm({...regForm, allergies: e.target.value})} />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label className="form-label small fw-semibold">Clinical Medical History</label>
+                    <input type="text" className="form-control rounded-3" placeholder="e.g. Hypertension, Diabetes (or blank)" value={regForm.medicalHistory} onChange={e => setRegForm({...regForm, medicalHistory: e.target.value})} />
                   </div>
                 </>
               )}
@@ -950,6 +974,16 @@ export default function AdminDashboard() {
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Custom Toast Notifications */}
+      {toast && (
+        <div className="custom-toast-container">
+          <div className={`custom-toast toast-${toast.type}`}>
+            <i className={`bi ${toast.type === 'error' ? 'bi-exclamation-circle-fill text-danger' : 'bi-check-circle-fill text-success'} fs-5`}></i>
+            <div className="custom-toast-message">{toast.message}</div>
+            <button type="button" className="btn-close" style={{ fontSize: '0.75rem' }} onClick={() => setToast(null)}></button>
           </div>
         </div>
       )}

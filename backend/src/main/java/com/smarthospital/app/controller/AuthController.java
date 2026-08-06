@@ -119,7 +119,14 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Error: Invalid role!");
         }
+
+        // Ensure mobile/phone number is provided
+        if (registerRequest.getPhone() == null || registerRequest.getPhone().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: Mobile number is required for OTP verification!");
+        }
+
         user.setRole(role);
+        user.setPhone(registerRequest.getPhone().trim());
 
         User savedUser = userRepository.save(user);
 
@@ -132,6 +139,8 @@ public class AuthController {
             patient.setBloodGroup(registerRequest.getBloodGroup());
             patient.setAddress(registerRequest.getAddress());
             patient.setPhone(registerRequest.getPhone());
+            patient.setAllergies(registerRequest.getAllergies() != null && !registerRequest.getAllergies().trim().isEmpty() ? registerRequest.getAllergies() : "None");
+            patient.setMedicalHistory(registerRequest.getMedicalHistory() != null && !registerRequest.getMedicalHistory().trim().isEmpty() ? registerRequest.getMedicalHistory() : "None");
             patientRepository.save(patient);
         } else if (role == Role.ROLE_DOCTOR) {
             Doctor doctor = new Doctor();
@@ -171,7 +180,9 @@ public class AuthController {
 
         // Retrieve registered phone number
         String phone = "+1-555-0199";
-        if (user.getRole() == Role.ROLE_PATIENT) {
+        if (user.getPhone() != null && !user.getPhone().trim().isEmpty()) {
+            phone = user.getPhone();
+        } else if (user.getRole() == Role.ROLE_PATIENT) {
             Optional<Patient> patient = patientRepository.findByUserId(user.getId());
             if (patient.isPresent() && patient.get().getPhone() != null) {
                 phone = patient.get().getPhone();

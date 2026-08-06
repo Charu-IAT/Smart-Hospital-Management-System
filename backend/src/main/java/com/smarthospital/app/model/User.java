@@ -29,6 +29,9 @@ public class User {
     @Column(nullable = false, length = 30)
     private Role role;
 
+    @Column(length = 20)
+    private String phone;
+
     @Column(name = "date_created")
     private LocalDateTime dateCreated = LocalDateTime.now();
 

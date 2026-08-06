@@ -44,6 +44,12 @@ export default function DoctorDashboard() {
   const [videoMuted, setVideoMuted] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
 
+  // Editing state for patient clinical details
+  const [isEditingAllergies, setIsEditingAllergies] = useState(false);
+  const [tempAllergies, setTempAllergies] = useState('');
+  const [isEditingHistory, setIsEditingHistory] = useState(false);
+  const [tempHistory, setTempHistory] = useState('');
+
   // Tab and Reports states
   const [activeTab, setActiveTab] = useState('queue');
   const [patients, setPatients] = useState([]);
@@ -123,11 +129,52 @@ export default function DoctorDashboard() {
     setCustomTestName('');
     setIsVideoActive(appointment.consultationType === 'VIDEO');
     setActivePatientVitals([]);
+    setIsEditingAllergies(false);
+    setTempAllergies(appointment.patient?.allergies || 'None');
+    setIsEditingHistory(false);
+    setTempHistory(appointment.patient?.medicalHistory || 'None');
     try {
       const res = await api.get(`/api/patients/${appointment.patient.id}/health-report`);
       setActivePatientVitals(res.data);
     } catch (err) {
       console.error("Error loading patient vitals:", err);
+    }
+  };
+
+  const handleSaveClinicalInfo = async (field) => {
+    try {
+      const patientId = activeConsult.patient?.id;
+      if (!patientId) return;
+
+      const nextAllergies = field === 'allergies' ? tempAllergies : (activeConsult.patient?.allergies || 'None');
+      const nextHistory = field === 'history' ? tempHistory : (activeConsult.patient?.medicalHistory || 'None');
+
+      const res = await api.put(`/api/patients/${patientId}/clinical-info?allergies=${encodeURIComponent(nextAllergies)}&medicalHistory=${encodeURIComponent(nextHistory)}`);
+      
+      // Update local state
+      setActiveConsult(prev => ({
+        ...prev,
+        patient: res.data
+      }));
+      
+      // Update appointments list so that other references are updated
+      setAppointments(prev => prev.map(app => {
+        if (app.patient?.id === patientId) {
+          return { ...app, patient: res.data };
+        }
+        return app;
+      }));
+
+      if (field === 'allergies') {
+        setIsEditingAllergies(false);
+      } else {
+        setIsEditingHistory(false);
+      }
+      setMessage('Clinical profile updated successfully!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      console.error("Error updating clinical info:", err);
+      alert("Error updating clinical info: " + (err.response?.data || err.message));
     }
   };
 
@@ -410,18 +457,50 @@ export default function DoctorDashboard() {
                       </div>
                       <div className="col-12"><hr className="my-1 border-light-subtle" /></div>
                       <div className="col-12">
-                        <span className="text-danger small d-block fw-bold"><i className="bi bi-shield-slash-fill me-1"></i>Known Allergies</span>
-                        <p className="mb-1 text-dark small bg-white p-2 rounded border border-danger-subtle">{activeConsult.patient?.allergies || 'No allergies reported'}</p>
+                        <span className="text-danger small d-flex justify-content-between align-items-center fw-bold mb-1">
+                          <span><i className="bi bi-shield-slash-fill me-1"></i>Known Allergies</span>
+                          {!isEditingAllergies ? (
+                            <button type="button" className="btn btn-sm btn-link text-primary p-0 fw-semibold text-decoration-none" onClick={() => { setTempAllergies(activeConsult.patient?.allergies || 'None'); setIsEditingAllergies(true); }}>
+                              <i className="bi bi-pencil-square me-1"></i>Edit
+                            </button>
+                          ) : (
+                            <div className="d-flex gap-2">
+                              <button type="button" className="btn btn-sm btn-link text-success p-0 fw-semibold text-decoration-none animate-pulse" onClick={() => handleSaveClinicalInfo('allergies')}>Save</button>
+                              <button type="button" className="btn btn-sm btn-link text-secondary p-0 fw-semibold text-decoration-none" onClick={() => setIsEditingAllergies(false)}>Cancel</button>
+                            </div>
+                          )}
+                        </span>
+                        {!isEditingAllergies ? (
+                          <p className="mb-1 text-dark small bg-white p-2 rounded border border-danger-subtle">{activeConsult.patient?.allergies || 'No allergies reported'}</p>
+                        ) : (
+                          <input type="text" className="form-control form-control-sm rounded-3 mb-1" value={tempAllergies} onChange={e => setTempAllergies(e.target.value)} placeholder="Enter allergies..." />
+                        )}
                       </div>
                       <div className="col-12">
-                        <span className="text-primary small d-block fw-bold"><i className="bi bi-clock-history me-1"></i>Clinical History</span>
-                        <p className="mb-0 text-dark small bg-white p-2 rounded border border-primary-subtle">{activeConsult.patient?.medicalHistory || 'No clinical history'}</p>
+                        <span className="text-primary small d-flex justify-content-between align-items-center fw-bold mb-1">
+                          <span><i className="bi bi-clock-history me-1"></i>Clinical History</span>
+                          {!isEditingHistory ? (
+                            <button type="button" className="btn btn-sm btn-link text-primary p-0 fw-semibold text-decoration-none" onClick={() => { setTempHistory(activeConsult.patient?.medicalHistory || 'None'); setIsEditingHistory(true); }}>
+                              <i className="bi bi-pencil-square me-1"></i>Edit
+                            </button>
+                          ) : (
+                            <div className="d-flex gap-2">
+                              <button type="button" className="btn btn-sm btn-link text-success p-0 fw-semibold text-decoration-none animate-pulse" onClick={() => handleSaveClinicalInfo('history')}>Save</button>
+                              <button type="button" className="btn btn-sm btn-link text-secondary p-0 fw-semibold text-decoration-none" onClick={() => setIsEditingHistory(false)}>Cancel</button>
+                            </div>
+                          )}
+                        </span>
+                        {!isEditingHistory ? (
+                          <p className="mb-0 text-dark small bg-white p-2 rounded border border-primary-subtle">{activeConsult.patient?.medicalHistory || 'No clinical history'}</p>
+                        ) : (
+                          <textarea className="form-control form-control-sm rounded-3 mb-0" rows="2" value={tempHistory} onChange={e => setTempHistory(e.target.value)} placeholder="Enter clinical history..."></textarea>
+                        )}
                       </div>
                       
                       {activePatientVitals && activePatientVitals.length > 0 ? (
                         <div className="col-12 mt-2">
-                          <span className="text-success small d-block fw-bold"><i className="bi bi-heart-pulse-fill me-1"></i>Latest Vitals</span>
-                          <div className="bg-white p-2.5 rounded border border-success-subtle row g-2 mt-0.5">
+                          <span className="text-success small d-block fw-bold mb-2"><i className="bi bi-heart-pulse-fill me-1"></i>Latest Vitals</span>
+                          <div className="bg-white p-3 rounded border border-success-subtle row g-2 mt-0.5">
                             <div className="col-6 small"><strong>Weight:</strong> <span className="text-primary fw-bold">{activePatientVitals[0].weight} kg</span></div>
                             <div className="col-6 small"><strong>Blood Pressure:</strong> <span className="text-danger fw-bold">{activePatientVitals[0].bp} mmHg</span></div>
                             {activePatientVitals[0].height && <div className="col-6 small"><strong>Height:</strong> {activePatientVitals[0].height} cm</div>}
@@ -432,8 +511,8 @@ export default function DoctorDashboard() {
                         </div>
                       ) : (
                         <div className="col-12 mt-2">
-                          <span className="text-success small d-block fw-bold"><i className="bi bi-heart-pulse-fill me-1"></i>Latest Vitals</span>
-                          <p className="mb-0 text-muted small bg-white p-2 rounded border border-success-subtle">No vital signs logged by patient yet.</p>
+                          <span className="text-success small d-block fw-bold mb-2"><i className="bi bi-heart-pulse-fill me-1"></i>Latest Vitals</span>
+                          <p className="mb-0 text-muted small bg-white p-3 rounded border border-success-subtle">No vital signs logged by patient yet.</p>
                         </div>
                       )}
 
