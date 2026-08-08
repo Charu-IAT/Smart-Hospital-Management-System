@@ -142,8 +142,11 @@ export default function Login({ onLoginSuccess }) {
         else navigate('/');
       }
     } catch (err) {
+      const errorMsg = typeof err.response?.data === 'string'
+        ? err.response.data
+        : err.response?.data?.message || 'An error occurred. Please try again.';
       setMessage({
-        text: err.response?.data || 'An error occurred. Please try again.',
+        text: errorMsg,
         type: 'danger',
       });
     }
@@ -174,8 +177,11 @@ export default function Login({ onLoginSuccess }) {
         setForgotData({ username: '', otp: '', newPassword: '' });
       }
     } catch (err) {
+      const errorMsg = typeof err.response?.data === 'string'
+        ? err.response.data
+        : err.response?.data?.message || 'Error processing forgot password request.';
       setMessage({
-        text: err.response?.data || 'Error processing forgot password request.',
+        text: errorMsg,
         type: 'danger',
       });
     }

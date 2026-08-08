@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import VisualReport from '../components/VisualReport';
 
+const UPI_ID = import.meta.env.VITE_UPI_ID || '9524980991@upi';
+const PAYEE_NAME = import.meta.env.VITE_PAYEE_NAME || 'Charumathi Dhanasekaran';
+const PAYEE_PHONE = import.meta.env.VITE_PAYEE_PHONE || '9524980991';
+
 const AVAILABLE_POLICIES = [
   { id: 1, provider: "Star Health", name: "Star Family Red Carpet (STAR-FRC-901)", premium: 1499, coverage: "Covers 100% OPD consultation, 80% Labs up to ₹15,000 annual limit", policyNo: "STAR-FRC-901" },
   { id: 2, provider: "Star Health", name: "Star Comprehensive Care (STAR-COMP-204)", premium: 2499, coverage: "Covers 100% OPD, 100% Labs and Pharmacy up to ₹30,000 limit", policyNo: "STAR-COMP-204" },
@@ -100,7 +104,10 @@ export default function PatientDashboard() {
   ]);
   const [slotError, setSlotError] = useState('');
   const showAlert = (message, type = 'error') => {
-    setCustomAlert({ type, message });
+    const parsedMessage = typeof message === 'string'
+      ? message
+      : message?.message || (message ? JSON.stringify(message) : '') || 'An error occurred';
+    setCustomAlert({ type, message: parsedMessage });
   };
   const [healthReportForm, setHealthReportForm] = useState({
     weight: '',
@@ -1027,15 +1034,15 @@ export default function PatientDashboard() {
                                 <div className="d-flex flex-column align-items-center mb-3 text-center">
                                   <div className="p-2 bg-white rounded-3 shadow-sm border border-light-subtle mb-3" style={{ width: '180px', height: '180px' }}>
                                     <img 
-                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=164x164&data=${encodeURIComponent(`upi://pay?pa=9524980991@upi&pn=Charumathi Dhanasekaran&am=${payingBill.totalAmount}&cu=INR`)}`} 
+                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=164x164&data=${encodeURIComponent(`upi://pay?pa=${UPI_ID}&pn=${PAYEE_NAME}&am=${payingBill.totalAmount}&cu=INR`)}`} 
                                       className="img-fluid rounded-2" 
                                       alt="UPI QR Code" 
                                     />
                                   </div>
                                   <span className="badge bg-success bg-opacity-10 text-success border border-success-subtle mb-2 px-2.5 py-1">UPI Merchant Account</span>
-                                  <h6 className="fw-bold text-dark mb-1">Charumathi Dhanasekaran</h6>
-                                  <p className="small text-muted mb-0">Phone: 9524980991</p>
-                                  <p className="small text-muted mb-0">UPI ID: 9524980991@upi</p>
+                                  <h6 className="fw-bold text-dark mb-1">{PAYEE_NAME}</h6>
+                                  <p className="small text-muted mb-0">Phone: {PAYEE_PHONE}</p>
+                                  <p className="small text-muted mb-0">UPI ID: {UPI_ID}</p>
                                   <p className="small text-muted mt-2 mb-3">Scan to pay with any UPI app</p>
                                   
                                   <div className="mb-1 w-100 text-start">
@@ -1847,15 +1854,15 @@ export default function PatientDashboard() {
                         <div className="d-flex flex-column align-items-center mb-3 text-center p-3 bg-light rounded-3 border">
                           <div className="p-2 bg-white rounded-3 shadow-sm border border-light-subtle mb-3" style={{ width: '180px', height: '180px' }}>
                             <img 
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=164x164&data=${encodeURIComponent(`upi://pay?pa=9524980991@upi&pn=Charumathi Dhanasekaran&am=${selectedPlanForPurchase.premium}&cu=INR`)}`} 
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=164x164&data=${encodeURIComponent(`upi://pay?pa=${UPI_ID}&pn=${PAYEE_NAME}&am=${selectedPlanForPurchase.premium}&cu=INR`)}`} 
                               className="img-fluid rounded-2" 
                               alt="UPI QR Code" 
                             />
                           </div>
                           <span className="badge bg-success bg-opacity-10 text-success border border-success-subtle mb-2 px-2.5 py-1">UPI Merchant Account</span>
-                          <h6 className="fw-bold text-dark mb-1">Charumathi Dhanasekaran</h6>
-                          <p className="small text-muted mb-0">Phone: 9524980991</p>
-                          <p className="small text-muted mb-0">UPI ID: 9524980991@upi</p>
+                          <h6 className="fw-bold text-dark mb-1">{PAYEE_NAME}</h6>
+                          <p className="small text-muted mb-0">Phone: {PAYEE_PHONE}</p>
+                          <p className="small text-muted mb-0">UPI ID: {UPI_ID}</p>
                           <p className="small text-muted mt-2">Scan to pay with GPay, PhonePe, Paytm, or any UPI app</p>
                         </div>
 

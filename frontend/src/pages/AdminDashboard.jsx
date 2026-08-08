@@ -266,7 +266,10 @@ export default function AdminDashboard() {
       fetchPatients();
       fetchStats();
     } catch (err) {
-      setMessage(err.response?.data || 'Error registering user');
+      const errorMsg = typeof err.response?.data === 'string'
+        ? err.response.data
+        : err.response?.data?.message || 'Error registering user';
+      setMessage(errorMsg);
     }
   };
 
