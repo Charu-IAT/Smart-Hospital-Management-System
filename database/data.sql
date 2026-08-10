@@ -1,1 +1,0 @@
--- Clean Database (No seed data)
