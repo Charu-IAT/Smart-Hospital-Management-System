@@ -6,6 +6,7 @@ import com.smarthospital.app.dto.RegisterRequest;
 import com.smarthospital.app.model.*;
 import com.smarthospital.app.repository.*;
 import com.smarthospital.app.security.JwtTokenProvider;
+import com.smarthospital.app.service.SmsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,11 +29,12 @@ public class AuthController {
     private final DepartmentRepository departmentRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final SmsService smsService;
 
     public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository,
                           PatientRepository patientRepository, DoctorRepository doctorRepository,
                           DepartmentRepository departmentRepository, PasswordEncoder passwordEncoder,
-                          JwtTokenProvider tokenProvider) {
+                          JwtTokenProvider tokenProvider, SmsService smsService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
@@ -40,6 +42,7 @@ public class AuthController {
         this.departmentRepository = departmentRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
+        this.smsService = smsService;
     }
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
@@ -172,7 +175,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Error: Username is required!");
         }
 
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsernameIgnoreCase(username)
                 .orElse(null);
         if (user == null) {
             return ResponseEntity.badRequest().body("Error: Username not found!");
@@ -195,13 +198,15 @@ public class AuthController {
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
         userRepository.save(user);
 
-        // System output to simulate SMS gateway log delivery
-        System.out.println("\n=======================================================");
-        System.out.println("[SMS GATEWAY SIMULATOR] OTP code: " + otp + " sent to registered mobile number: " + phone);
-        System.out.println("=======================================================\n");
+        // Send actual SMS via Twilio (falls back to simulation if no keys)
+        boolean sentRealSms = smsService.sendSms(phone, "Your Smart Hospital password reset OTP code is: " + otp + ". This code expires in 10 minutes.");
+
+        String message = sentRealSms 
+            ? "OTP sent successfully to registered mobile number!" 
+            : "OTP sent successfully (Simulated Console Delivery)!";
 
         return ResponseEntity.ok(Map.of(
-            "message", "OTP sent successfully to registered mobile number!",
+            "message", message,
             "phoneMask", maskPhone(phone),
             "otp", otp
         ));

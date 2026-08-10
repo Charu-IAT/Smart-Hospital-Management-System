@@ -15,6 +15,7 @@ com\smarthospital\app\model\HealthReport.class
 com\smarthospital\app\repository\PrescriptionRepository.class
 com\smarthospital\app\model\User.class
 com\smarthospital\app\repository\InsuranceRepository.class
+com\smarthospital\app\service\SmsService.class
 com\smarthospital\app\security\SecurityConfig.class
 com\smarthospital\app\repository\LabReportRepository.class
 com\smarthospital\app\repository\UserRepository.class

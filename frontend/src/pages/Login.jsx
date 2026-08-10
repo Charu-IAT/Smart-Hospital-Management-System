@@ -52,10 +52,10 @@ export default function Login({ onLoginSuccess }) {
   }, []);
 
   React.useEffect(() => {
-    if (message.text) {
+    if (message.text && message.type !== 'success') {
       const timer = setTimeout(() => {
         setMessage({ text: '', type: '' });
-      }, 2000);
+      }, 4000);
       return () => clearTimeout(timer);
     }
   }, [message]);
