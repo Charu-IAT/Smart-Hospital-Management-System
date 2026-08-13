@@ -614,7 +614,7 @@ export default function PatientDashboard() {
                                 <strong>Doctor:</strong> {presc.doctor?.name} ({presc.doctor?.specialization})
                               </div>
                               <div className="text-dark small mt-1">
-                                <strong>Meds:</strong> {presc.medicines}
+                                <strong>Meds:</strong> {presc.medicines} {presc.tabletCount && <span className="badge bg-secondary ms-1">{presc.tabletCount} Tablets</span>}
                               </div>
                             </div>
                           ))}
@@ -1146,7 +1146,7 @@ export default function PatientDashboard() {
                         {prescriptions.map(p => (
                           <div key={p.id} className="list-group-item bg-transparent px-0 border-light-subtle">
                             <h6 className="fw-bold mb-1">{p.diagnosis}</h6>
-                            <p className="text-muted small mb-1"><strong>Meds:</strong> {p.medicines} • {p.dosage}</p>
+                            <p className="text-muted small mb-1"><strong>Meds:</strong> {p.medicines} • {p.dosage} {p.tabletCount && `• Qty: ${p.tabletCount} Tablets`}</p>
                             <p className="text-muted small mb-2"><strong>Instructions:</strong> {p.instructions}</p>
                             <span className="small text-muted block"><i className="bi bi-person me-1"></i>{p.doctor?.name} • <i className="bi bi-calendar3 me-1"></i>{new Date(p.dateCreated).toLocaleDateString()}</span>
                           </div>

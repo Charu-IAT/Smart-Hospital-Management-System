@@ -40,6 +40,9 @@ public class Prescription {
     @Column(columnDefinition = "TEXT")
     private String instructions;
 
+    @Column(name = "tablet_count")
+    private Integer tabletCount;
+
     @Column(name = "date_created")
     private LocalDateTime dateCreated = LocalDateTime.now();
 }

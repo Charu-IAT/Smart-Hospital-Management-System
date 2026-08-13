@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import VisualReport from '../components/VisualReport';
 
@@ -143,6 +143,61 @@ const TEST_TEMPLATES = {
       { name: 'Protein', val: '', unit: 'g/L', min: 0, max: 0.15 },
       { name: 'Glucose', val: '', unit: 'mmol/L', min: 0, max: 0.8 }
     ]
+  },
+  ecg: {
+    name: 'ECG (Electrocardiogram)',
+    category: 'Cardiology',
+    markers: [
+      { name: 'Heart Rate', val: '', unit: 'bpm', min: 60, max: 100 },
+      { name: 'PR Interval', val: '', unit: 'ms', min: 120, max: 200 },
+      { name: 'QRS Duration', val: '', unit: 'ms', min: 80, max: 120 },
+      { name: 'QT Interval', val: '', unit: 'ms', min: 350, max: 440 },
+      { name: 'QTc Interval', val: '', unit: 'ms', min: 350, max: 460 }
+    ]
+  },
+  xray: {
+    name: 'Chest X-Ray',
+    category: 'Radiology',
+    markers: [
+      { name: 'Cardiothoracic Ratio', val: '', unit: '%', min: 30, max: 50 },
+      { name: 'Lung Expansion Volume', val: '', unit: 'L', min: 3.0, max: 6.0 },
+      { name: 'Pleural Fluid Level', val: '', unit: 'mL', min: 0, max: 15 },
+      { name: 'Hilar Width', val: '', unit: 'mm', min: 10, max: 20 }
+    ]
+  },
+  mri: {
+    name: 'MRI Brain Scan',
+    category: 'Radiology',
+    markers: [
+      { name: 'Midline Shift', val: '', unit: 'mm', min: 0, max: 0.5 },
+      { name: 'Ventricle Width', val: '', unit: 'mm', min: 5, max: 15 },
+      { name: 'Intracranial Pressure (ICP)', val: '', unit: 'mmHg', min: 5, max: 15 },
+      { name: 'White Matter Signal', val: '', unit: '%-ref', min: 90, max: 110 }
+    ]
+  },
+  ultrasound: {
+    name: 'Ultrasound Abdomen Scan',
+    category: 'Radiology',
+    markers: [
+      { name: 'Liver Size', val: '', unit: 'cm', min: 10.0, max: 15.0 },
+      { name: 'Gallbladder Wall Thickness', val: '', unit: 'mm', min: 1.0, max: 3.0 },
+      { name: 'Spleen Length', val: '', unit: 'cm', min: 7.0, max: 12.0 },
+      { name: 'Right Kidney Size', val: '', unit: 'cm', min: 9.0, max: 12.0 },
+      { name: 'Left Kidney Size', val: '', unit: 'cm', min: 9.0, max: 12.0 }
+    ]
+  },
+  echocardiogram: {
+    name: '2D Echocardiogram',
+    category: 'Cardiology',
+    markers: [
+      { name: 'Left Ventricular Ejection Fraction (LVEF)', val: '', unit: '%', min: 55, max: 70 },
+      { name: 'Left Ventricular End-Diastolic Dimension (LVEDD)', val: '', unit: 'mm', min: 35, max: 56 },
+      { name: 'Left Ventricular End-Systolic Dimension (LVESD)', val: '', unit: 'mm', min: 20, max: 40 },
+      { name: 'Interventricular Septal Thickness (IVSd)', val: '', unit: 'mm', min: 6, max: 11 },
+      { name: 'Posterior Wall Thickness (PWd)', val: '', unit: 'mm', min: 6, max: 11 },
+      { name: 'Left Atrium Diameter (LA)', val: '', unit: 'mm', min: 30, max: 40 },
+      { name: 'Aortic Root Diameter (Ao)', val: '', unit: 'mm', min: 20, max: 37 }
+    ]
   }
 };
 
@@ -160,7 +215,12 @@ const TEST_PRICES = {
   "Urine Analysis": 20.00,
   "Complete Blood Count (CBC)": 25.00,
   "Anemia Workup Panel": 60.00,
-  "Liver Function Test (LFT)": 50.00
+  "Liver Function Test (LFT)": 50.00,
+  "ECG (Electrocardiogram)": 45.00,
+  "Chest X-Ray": 80.00,
+  "MRI Brain Scan": 250.00,
+  "Ultrasound Abdomen Scan": 100.00,
+  "2D Echocardiogram": 150.00
 };
 
 export default function LabPortal() {
@@ -179,6 +239,8 @@ export default function LabPortal() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filterLogsByPatient, setFilterLogsByPatient] = useState(true);
   const [patientsList, setPatientsList] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     fetchReports();
@@ -266,6 +328,16 @@ export default function LabPortal() {
       handleTemplateChange('urine');
     } else if (nameLower.includes('thyroid') || nameLower.includes('tsh')) {
       handleTemplateChange('thyroid');
+    } else if (nameLower.includes('ecg') || nameLower.includes('electrocardiogram')) {
+      handleTemplateChange('ecg');
+    } else if (nameLower.includes('xray') || nameLower.includes('x-ray') || nameLower.includes('radiography') || nameLower.includes('chest')) {
+      handleTemplateChange('xray');
+    } else if (nameLower.includes('mri') || nameLower.includes('resonance') || nameLower.includes('magnetic')) {
+      handleTemplateChange('mri');
+    } else if (nameLower.includes('ultra') || nameLower.includes('usg') || nameLower.includes('sonography')) {
+      handleTemplateChange('ultrasound');
+    } else if (nameLower.includes('echo') || nameLower.includes('echocardiogram') || nameLower.includes('2d')) {
+      handleTemplateChange('echocardiogram');
     } else {
       handleTemplateChange('custom');
     }
@@ -377,6 +449,10 @@ Disclaimer: Please consult with your physician for clinical interpretation.
       return;
     }
 
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+
     try {
       await api.post('/api/lab/upload', null, {
         params: {
@@ -396,6 +472,9 @@ Disclaimer: Please consult with your physician for clinical interpretation.
       fetchReports();
     } catch (err) {
       setMessage('Error uploading report. Verify Patient ID is valid.');
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -460,6 +539,7 @@ Disclaimer: Please consult with your physician for clinical interpretation.
                     <option value="lipid">Lipid Profile</option>
                     <option value="cardiac_enzymes">Cardiac Biomarkers Panel</option>
                     <option value="coagulation">Coagulation Profile</option>
+                    <option value="echocardiogram">2D Echocardiogram</option>
                   </optgroup>
                   <optgroup label="Neurology (Neuro) Panel">
                     <option value="neuro_metabolic">Neuro-Metabolic Screen</option>
@@ -481,6 +561,14 @@ Disclaimer: Please consult with your physician for clinical interpretation.
                   </optgroup>
                   <optgroup label="General Diagnostics">
                     <option value="urine">Urine Analysis</option>
+                  </optgroup>
+                  <optgroup label="Radiology & Imaging">
+                    <option value="ecg">ECG (Electrocardiogram)</option>
+                    <option value="xray">Chest X-Ray</option>
+                    <option value="mri">MRI Brain Scan</option>
+                    <option value="ultrasound">Ultrasound Abdomen Scan</option>
+                  </optgroup>
+                  <optgroup label="Custom Panel">
                     <option value="custom">Custom Panel (Add Markers)</option>
                   </optgroup>
                 </select>
@@ -604,7 +692,16 @@ Disclaimer: Please consult with your physician for clinical interpretation.
                 <input type="text" className="form-control rounded-3" placeholder="e.g. /reports/cbc-result.pdf" value={uploadForm.fileUrl} onChange={e => setUploadForm({...uploadForm, fileUrl: e.target.value})} />
               </div>
 
-              <button type="submit" className="btn btn-premium-primary w-100 rounded-3">Upload & Finalize Lab Test</button>
+              <button type="submit" className="btn btn-premium-primary w-100 rounded-3" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Finalizing...
+                  </>
+                ) : (
+                  'Upload & Finalize Lab Test'
+                )}
+              </button>
             </form>
           </div>
         </div>

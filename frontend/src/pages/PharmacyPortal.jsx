@@ -18,10 +18,45 @@ export default function PharmacyPortal() {
   });
 
   const [message, setMessage] = useState('');
+  const [patientPrescriptions, setPatientPrescriptions] = useState([]);
+  const [isLoadingPrescriptions, setIsLoadingPrescriptions] = useState(false);
+  const [hasSearchedPrescriptions, setHasSearchedPrescriptions] = useState(false);
 
   useEffect(() => {
     fetchMedicines();
   }, []);
+
+  const fetchPatientPrescriptions = async (patientId) => {
+    if (!patientId) {
+      setPatientPrescriptions([]);
+      setHasSearchedPrescriptions(false);
+      return;
+    }
+    setIsLoadingPrescriptions(true);
+    setHasSearchedPrescriptions(true);
+    try {
+      const res = await api.get(`/api/patients/${patientId}/prescriptions`);
+      setPatientPrescriptions(res.data);
+    } catch (err) {
+      console.error("Error loading patient prescriptions:", err);
+      setPatientPrescriptions([]);
+    } finally {
+      setIsLoadingPrescriptions(false);
+    }
+  };
+
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (purchaseForm.patientId) {
+        fetchPatientPrescriptions(purchaseForm.patientId);
+      } else {
+        setPatientPrescriptions([]);
+        setHasSearchedPrescriptions(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [purchaseForm.patientId]);
 
   const fetchMedicines = async () => {
     try {
@@ -126,8 +161,86 @@ export default function PharmacyPortal() {
             <form onSubmit={handlePurchase}>
               <div className="mb-3">
                 <label className="form-label small fw-semibold">Patient ID</label>
-                <input type="number" className="form-control rounded-3" placeholder="Enter Patient ID (e.g. 1)" value={purchaseForm.patientId} onChange={e => setPurchaseForm({...purchaseForm, patientId: e.target.value})} required />
+                <div className="input-group">
+                  <input
+                    type="number"
+                    className="form-control rounded-start-3"
+                    placeholder="Enter Patient ID (e.g. 1)"
+                    value={purchaseForm.patientId}
+                    onChange={e => {
+                      setPurchaseForm({...purchaseForm, patientId: e.target.value});
+                      if (!e.target.value) {
+                        setPatientPrescriptions([]);
+                        setHasSearchedPrescriptions(false);
+                      }
+                    }}
+                    required
+                  />
+                  <button
+                    className="btn btn-outline-secondary rounded-end-3"
+                    type="button"
+                    onClick={() => fetchPatientPrescriptions(purchaseForm.patientId)}
+                    disabled={!purchaseForm.patientId || isLoadingPrescriptions}
+                  >
+                    {isLoadingPrescriptions ? (
+                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    ) : (
+                      <i className="bi bi-search"></i>
+                    )}
+                  </button>
+                </div>
               </div>
+
+              {isLoadingPrescriptions && (
+                <div className="d-flex align-items-center justify-content-center py-2 mb-3 text-muted small">
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Retrieving patient prescriptions...
+                </div>
+              )}
+
+              {!isLoadingPrescriptions && hasSearchedPrescriptions && patientPrescriptions.length > 0 && (
+                <div className="p-3 bg-primary bg-opacity-10 border border-primary-subtle rounded-3 mb-3 small text-start animate-fade-in">
+                  <div className="fw-bold text-primary mb-2 d-flex justify-content-between align-items-center">
+                    <span><i className="bi bi-file-earmark-medical me-1"></i> Patient Prescriptions ({patientPrescriptions.length})</span>
+                    <span className="badge bg-primary text-white">ID: #{purchaseForm.patientId}</span>
+                  </div>
+                  <div className="overflow-y-auto" style={{ maxHeight: '160px' }}>
+                    {patientPrescriptions.map(p => (
+                      <div key={p.id} className="p-2 bg-white rounded-2 border border-light-subtle mb-2 shadow-sm">
+                        <div className="fw-bold text-primary mb-1">{p.diagnosis}</div>
+                        <div className="text-dark small mb-1">
+                          <strong>Meds Prescribed:</strong> <span className="text-danger fw-semibold">{p.medicines}</span>
+                        </div>
+                        {p.tabletCount && (
+                          <div className="text-dark small mb-1" style={{ fontSize: '0.75rem' }}>
+                            <strong>Tablet Count:</strong> <span className="badge bg-secondary">{p.tabletCount} Tablets</span>
+                          </div>
+                        )}
+                        {p.dosage && (
+                          <div className="text-muted small mb-1" style={{ fontSize: '0.75rem' }}>
+                            <strong>Dosage:</strong> {p.dosage}
+                          </div>
+                        )}
+                        {p.instructions && (
+                          <div className="text-muted small" style={{ fontSize: '0.75rem' }}>
+                            <strong>Instructions:</strong> {p.instructions}
+                          </div>
+                        )}
+                        <hr className="my-1 border-light-subtle" />
+                        <div className="text-muted text-end" style={{ fontSize: '0.7rem' }}>
+                          By: {p.doctor?.name} ({p.doctor?.specialization || 'OPD'})
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!isLoadingPrescriptions && hasSearchedPrescriptions && patientPrescriptions.length === 0 && purchaseForm.patientId && (
+                <div className="alert alert-warning py-2 px-3 border border-warning-subtle rounded-3 small mb-3 text-start animate-fade-in">
+                  <i className="bi bi-exclamation-triangle-fill me-1"></i> No prescriptions found for Patient ID #{purchaseForm.patientId}.
+                </div>
+              )}
               <div className="mb-3">
                 <label className="form-label small fw-semibold">Select Medicine</label>
                 <select className="form-select rounded-3" value={purchaseForm.medicineId} onChange={e => setPurchaseForm({...purchaseForm, medicineId: e.target.value})} required>

@@ -8,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/doctors")
@@ -71,6 +72,17 @@ public class DoctorController {
         Appointment appointment = appointmentRepository.findById(prescription.getAppointment().getId())
                 .orElseThrow(() -> new RuntimeException("Appointment not found"));
         
+        Optional<Prescription> existing = prescriptionRepository.findByAppointmentId(appointment.getId());
+        if (existing.isPresent()) {
+            Prescription old = existing.get();
+            old.setDiagnosis(prescription.getDiagnosis());
+            old.setMedicines(prescription.getMedicines());
+            old.setDosage(prescription.getDosage());
+            old.setInstructions(prescription.getInstructions());
+            old.setTabletCount(prescription.getTabletCount());
+            return ResponseEntity.ok(prescriptionRepository.save(old));
+        }
+
         appointment.setStatus("COMPLETED");
         appointmentRepository.save(appointment);
 

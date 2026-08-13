@@ -110,6 +110,14 @@ public class LabController {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
 
+        // Check if there is already a pending lab order for the same patient and test name
+        java.util.List<LabReport> existingPending = labReportRepository.findByPatientId(patientId).stream()
+                .filter(r -> (r.getStatus().equals("PENDING") || r.getStatus().equals("SAMPLE_COLLECTED")) && r.getTestName().equalsIgnoreCase(testName))
+                .collect(java.util.stream.Collectors.toList());
+        if (!existingPending.isEmpty()) {
+            return ResponseEntity.ok(existingPending.get(0));
+        }
+
         org.springframework.security.core.Authentication auth = 
             org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         String doctorName = auth != null ? auth.getName() : "DOCTOR";
@@ -195,6 +203,16 @@ public class LabController {
             return 60.00;
         } else if (name.equalsIgnoreCase("Liver Function Test (LFT)")) {
             return 50.00;
+        } else if (name.equalsIgnoreCase("ECG (Electrocardiogram)")) {
+            return 45.00;
+        } else if (name.equalsIgnoreCase("Chest X-Ray")) {
+            return 80.00;
+        } else if (name.equalsIgnoreCase("MRI Brain Scan")) {
+            return 250.00;
+        } else if (name.equalsIgnoreCase("Ultrasound Abdomen Scan")) {
+            return 100.00;
+        } else if (name.equalsIgnoreCase("2D Echocardiogram")) {
+            return 150.00;
         }
         return 30.00; // Default fallback
     }

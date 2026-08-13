@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import VisualReport from '../components/VisualReport';
 
@@ -16,7 +16,12 @@ const TEST_PRICES = {
   "Urine Analysis": 20.00,
   "Complete Blood Count (CBC)": 25.00,
   "Anemia Workup Panel": 60.00,
-  "Liver Function Test (LFT)": 50.00
+  "Liver Function Test (LFT)": 50.00,
+  "ECG (Electrocardiogram)": 45.00,
+  "Chest X-Ray": 80.00,
+  "MRI Brain Scan": 250.00,
+  "Ultrasound Abdomen Scan": 100.00,
+  "2D Echocardiogram": 150.00
 };
 
 export default function DoctorDashboard() {
@@ -33,12 +38,15 @@ export default function DoctorDashboard() {
   const [prescribedMeds, setPrescribedMeds] = useState('');
   const [dosage, setDosage] = useState('');
   const [instructions, setInstructions] = useState('');
+  const [tabletCount, setTabletCount] = useState('');
   const [allergyAlert, setAllergyAlert] = useState('');
   const [prescribedTests, setPrescribedTests] = useState([]);
   const [selectedTestSelect, setSelectedTestSelect] = useState('');
   const [customTestName, setCustomTestName] = useState('');
   const [customTestPrice, setCustomTestPrice] = useState('');
   const [customPrices, setCustomPrices] = useState({});
+  const [isSubmittingPrescription, setIsSubmittingPrescription] = useState(false);
+  const isSubmittingPrescriptionRef = useRef(false);
 
   // Video controls mockup state
   const [videoMuted, setVideoMuted] = useState(false);
@@ -123,6 +131,7 @@ export default function DoctorDashboard() {
     setPrescribedMeds('');
     setDosage('');
     setInstructions('');
+    setTabletCount('');
     setAllergyAlert('');
     setPrescribedTests([]);
     setSelectedTestSelect('');
@@ -203,13 +212,18 @@ export default function DoctorDashboard() {
       return;
     }
 
+    if (isSubmittingPrescriptionRef.current) return;
+    isSubmittingPrescriptionRef.current = true;
+    setIsSubmittingPrescription(true);
+
     try {
       const payload = {
         appointment: { id: activeConsult.id },
         diagnosis: diagnosis,
         medicines: prescribedMeds,
         dosage: dosage,
-        instructions: instructions
+        instructions: instructions,
+        tabletCount: tabletCount ? parseInt(tabletCount) : null
       };
 
       await api.post('/api/doctors/prescribe', payload);
@@ -234,10 +248,16 @@ export default function DoctorDashboard() {
       setPrescribedMeds('');
       setDosage('');
       setInstructions('');
+      setTabletCount('');
       setPrescribedTests([]);
       setCustomPrices({});
       fetchProfileAndAppointments();
-    } catch (err) { setMessage('Error saving prescription'); }
+    } catch (err) { 
+      setMessage('Error saving prescription'); 
+    } finally {
+      isSubmittingPrescriptionRef.current = false;
+      setIsSubmittingPrescription(false);
+    }
   };
 
   const previousDoctorHistory = activeConsult 
@@ -613,6 +633,11 @@ export default function DoctorDashboard() {
                 </div>
 
                 <div className="mb-3">
+                  <label className="form-label small fw-semibold">Total Tablet Count</label>
+                  <input type="number" className="form-control rounded-3" placeholder="e.g. 30" value={tabletCount} onChange={e => setTabletCount(e.target.value)} />
+                </div>
+
+                <div className="mb-3">
                   <label className="form-label small fw-semibold">Instructions for Patient</label>
                   <textarea className="form-control rounded-3" rows="2" placeholder="Drink warm water, rest for 3 days, avoid cold food" value={instructions} onChange={e => setInstructions(e.target.value)}></textarea>
                 </div>
@@ -630,6 +655,7 @@ export default function DoctorDashboard() {
                         <option value="Lipid Profile">Lipid Profile (₹50.00)</option>
                         <option value="Cardiac Biomarkers Panel">Cardiac Biomarkers Panel (₹120.00)</option>
                         <option value="Coagulation Profile">Coagulation Profile (₹45.00)</option>
+                        <option value="2D Echocardiogram">2D Echocardiogram (₹150.00)</option>
                       </optgroup>
                       <optgroup label="Neurology (Neuro)">
                         <option value="Neuro-Metabolic Screen">Neuro-Metabolic Screen (₹150.00)</option>
@@ -649,6 +675,12 @@ export default function DoctorDashboard() {
                         <option value="Complete Blood Count (CBC)">Complete Blood Count (CBC) (₹25.00)</option>
                         <option value="Anemia Workup Panel">Anemia Workup Panel (₹60.00)</option>
                         <option value="Liver Function Test (LFT)">Liver Function Test (LFT) (₹50.00)</option>
+                      </optgroup>
+                      <optgroup label="Radiology & Imaging">
+                        <option value="ECG (Electrocardiogram)">ECG (Electrocardiogram) (₹45.00)</option>
+                        <option value="Chest X-Ray">Chest X-Ray (₹80.00)</option>
+                        <option value="MRI Brain Scan">MRI Brain Scan (₹250.00)</option>
+                        <option value="Ultrasound Abdomen Scan">Ultrasound Abdomen Scan (₹100.00)</option>
                       </optgroup>
                     </select>
                     
@@ -759,8 +791,15 @@ export default function DoctorDashboard() {
                 </div>
 
                 <div className="d-flex gap-2">
-                  <button type="submit" className="btn btn-premium-primary flex-grow-1 rounded-3">
-                    Save Prescription & Finish
+                  <button type="submit" className="btn btn-premium-primary flex-grow-1 rounded-3" disabled={isSubmittingPrescription}>
+                    {isSubmittingPrescription ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Prescription & Finish'
+                    )}
                   </button>
                   <button type="button" className="btn btn-outline-secondary rounded-3" onClick={() => { 
                     setActiveConsult(null); 
@@ -769,6 +808,7 @@ export default function DoctorDashboard() {
                     setPrescribedMeds('');
                     setDosage('');
                     setInstructions('');
+                    setTabletCount('');
                     setPrescribedTests([]);
                     setCustomPrices({});
                   }}>
